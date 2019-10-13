@@ -1,0 +1,4 @@
+#!/usr/bin/with-contenv sh
+
+/bin/chmod 0400 /etc/ssl/certificate.pem || exit 1
+/bin/chmod 0400 /etc/ssl/key.pem || exit 1

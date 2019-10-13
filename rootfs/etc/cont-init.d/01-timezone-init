@@ -1,0 +1,3 @@
+#!/usr/bin/with-contenv sh
+
+/bin/cp /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
