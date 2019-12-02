@@ -4,12 +4,24 @@
 /usr/sbin/postconf "mydomain=${DOMAIN:=contoso.localdomain}"
 /usr/sbin/postconf "virtual_alias_domains=${ALIASES:=fabrikam.localdomain}"
 
+# BlackHole Email Addresses
+for u in $DEVNULL; do
+    /bin/echo "${u}        nobody" >> /etc/postfix/virtual
+done
+
+# Create DOMAIN
+/bin/echo "noreply@${DOMAIN}        nobody" >> /etc/postfix/virtual
 /bin/echo "@${DOMAIN}        catchall" >> /etc/postfix/virtual
+
+# Create all ALIAS DOMAINS
 for d in $ALIASES; do
+    /bin/echo "noreply@${d}        nobody" >> /etc/postfix/virtual
     /bin/echo "@${d}        catchall" >> /etc/postfix/virtual
 done
 
+# Log
 /bin/cat /etc/postfix/virtual
 
+# Process
 /usr/sbin/postmap /etc/postfix/virtual
 /usr/sbin/postalias /etc/postfix/aliases
