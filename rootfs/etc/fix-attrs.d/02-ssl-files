@@ -1,2 +1,2 @@
-/etc/ssl/certificate.pem true root 0400
-/etc/ssl/key.pem true root 0400
+/etc/ssl/certificate.pem true root 0400 0500
+/etc/ssl/key.pem true root 0400 0500
