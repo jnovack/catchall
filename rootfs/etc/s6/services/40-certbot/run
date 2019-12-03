@@ -1,0 +1,11 @@
+#!/usr/bin/with-contenv sh
+echo "[*] Watching for certbot renewals"
+
+while true; do
+    if [ -f /etc/letsencrypt/live/${HOSTNAME}/.deploy ]; then
+        echo "Found new certificate for ${HOSTNAME}, restarting dovecot."
+        cat /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem | openssl x509 -noout -subject -dates
+        s6-svc -r /run/s6/services/30-dovecot
+    fi
+    sleep 1h
+done
