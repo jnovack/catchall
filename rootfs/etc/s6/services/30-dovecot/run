@@ -1,3 +1,4 @@
 #!/usr/bin/with-contenv sh
+sleep 3
 echo "[*] Starting dovecot"
 exec /usr/sbin/dovecot -F

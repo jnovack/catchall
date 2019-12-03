@@ -1,6 +1,6 @@
 #!/usr/bin/with-contenv sh
+sleep 4
 echo "[*] Watching for certbot renewals"
-
 while true; do
     if [ -f /etc/letsencrypt/live/${HOSTNAME}/.deploy ]; then
         echo "Found new certificate for ${HOSTNAME}, restarting dovecot."
