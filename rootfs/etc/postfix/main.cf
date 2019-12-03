@@ -34,6 +34,11 @@ smtpd_recipient_restrictions =
     reject_rhsbl_reverse_client dbl.spamhaus.org,
     reject_rhsbl_helo dbl.spamhaus.org,
     reject_rhsbl_sender dbl.spamhaus.org
+smtpd_client_restrictions =
+    permit_mynetworks,
+    reject_unauth_pipelining,
+    reject_unknown_client_hostname,
+    permit
 default_process_limit = 100
 smtpd_client_connection_count_limit = 10
 smtpd_client_connection_rate_limit = 30
