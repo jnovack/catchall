@@ -1,6 +1,6 @@
 #!/usr/bin/with-contenv sh
 
-if [ -f PASSWORD_FILE ]; then
+if [ -f $PASSWORD_FILE ]; then
     echo "Using password file ${PASSWORD_FILE}"
     PASSWORD=$(cat ${PASSWORD_FILE})
 fi
