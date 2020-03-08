@@ -1,12 +1,14 @@
 #!/usr/bin/with-contenv sh
-sleep 4
+/bin/sleep 4
 echo "[*] Watching for certbot renewals"
 while true; do
     if [ -f /etc/letsencrypt/live/${HOSTNAME}/.deploy ]; then
-        echo "Found new certificate for ${HOSTNAME}, restarting dovecot."
-        cat /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem | openssl x509 -noout -subject -dates
-        s6-svc -r /run/s6/services/30-dovecot
-        rm /etc/letsencrypt/live/${HOSTNAME}/.deploy
+        /bin/echo "Found new certificate for ${HOSTNAME}, restarting dovecot."
+        /bin/cat /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem | /usr/bin/openssl x509 -noout -subject -dates
+        /bin/cp /etc/letsencrypt/live/mail.ozmonet.com/privkey.pem /etc/ssl/key.pem
+        /bin/cp /etc/letsencrypt/live/mail.ozmonet.com/fullchain.pem /etc/ssl/certificate.pem
+        /bin/s6-svc -r /run/s6/services/30-dovecot
+        /bin/rm /etc/letsencrypt/live/${HOSTNAME}/.deploy
     fi
-    sleep 1h
+    /bin/sleep 1h
 done
