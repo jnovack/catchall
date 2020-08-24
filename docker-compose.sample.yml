@@ -1,0 +1,58 @@
+version: '3.6'
+
+services:
+  server:
+    image: jnovack/mailserver:latest
+    ports:
+      - target: 25
+        published: 25
+        protocol: tcp
+        mode: host
+      - target: 995
+        published: 995
+        protocol: tcp
+        mode: host
+    environment:
+      - "HOSTNAME=mail.contoso.com"
+      - "DOMAIN=contoso.com"
+      - "DEVNULL=sales@contoso.com webmaster@contoso.com"
+      - "ALIASES=contoso.home"
+      - "TIMEZONE=America/New_York"
+      - "PASSWORD_FILE=/run/secrets/catchall-password"
+      - "SLACK_URL_FILE=/run/secrets/slack-webhook"
+    volumes:
+      - storage:/var/mail
+      - certificates:/etc/letsencrypt/
+    logging:
+      driver: syslog
+      options:
+        tag: docker/mail/server/{{.ID}}
+    secrets:
+      - catchall-password
+      - slack-webhook
+
+  letsencrypt:
+    image: certbot/certbot:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 24h & wait $${!}; done;'"
+    volumes:
+      - certificates:/etc/letsencrypt/
+      - letsencrypt:/config
+    logging:
+      driver: syslog
+      options:
+        tag: docker/mail/letsencrypt/{{.ID}}
+
+volumes:
+  storage:
+  letsencrypt:
+  certificates:
+
+secrets:
+  catchall-password:
+    external: true
+  slack-webhook:
+    external: true
