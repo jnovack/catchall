@@ -13,7 +13,7 @@ while true; do
         /bin/s6-svc -r /run/s6/services/30-dovecot
         MD5SUM=$(md5sum "/etc/letsencrypt/live/${HOSTNAME}/fullchain.pem" | cut -d " " -f1)
         if [ ! -z "${SLACK_URL_FILE}" ]; then
-            SLACK_URL=$(echo ${SLACK_URL_FILE})
+            SLACK_URL=$(/bin/cat ${SLACK_URL_FILE})
             MESSAGE="{\"attachments\":[{\"color\":\"#36a64f\",\"text\":\":closed_lock_with_key: Found new certificate for ${HOSTNAME}\"}]}"
             curl -X POST -H 'Content-type: application/json' --data "$MESSAGE" "${SLACK_URL}" > /dev/null 2>&1
         fi
