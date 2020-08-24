@@ -1,14 +1,14 @@
 #!/usr/bin/with-contenv sh
 
 if [ -f /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem ]; then
-    /usr/bin/logger "[INFO ] Using /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem"
+    /bin/echo "[INFO ] Using /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem"
     cp /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem /etc/ssl/certificate.pem
 fi
 
 if [ -f /etc/letsencrypt/live/${HOSTNAME}/privkey.pem ]; then
-    /usr/bin/logger "[INFO ] Using /etc/letsencrypt/live/${HOSTNAME}/privkey.pem"
+    /bin/echo "[INFO ] Using /etc/letsencrypt/live/${HOSTNAME}/privkey.pem"
     cp /etc/letsencrypt/live/${HOSTNAME}/privkey.pem /etc/ssl/key.pem
 fi
 
-test -f /etc/ssl/certificate.pem || echo "[FATAL] /etc/ssl/certificate.pem not found" && exit 1
-test -f /etc/ssl/key.pem || echo "[FATAL] /etc/ssl/key.pem not found" && exit 1
+test -f /etc/ssl/certificate.pem || ( /bin/echo "[FATAL] /etc/ssl/certificate.pem not found" && exit 1 )
+test -f /var/log/daily.out || ( /bin/echo "[FATAL] /etc/ssl/key.pem not found" && exit 1 )
