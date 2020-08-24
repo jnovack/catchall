@@ -11,4 +11,4 @@ if [ -f /etc/letsencrypt/live/${HOSTNAME}/privkey.pem ]; then
 fi
 
 test -f /etc/ssl/certificate.pem || ( /bin/echo "[FATAL] /etc/ssl/certificate.pem not found" && exit 1 )
-test -f /var/log/daily.out || ( /bin/echo "[FATAL] /etc/ssl/key.pem not found" && exit 1 )
+test -f /var/log/key.pem || ( /bin/echo "[FATAL] /etc/ssl/key.pem not found" && exit 1 )
