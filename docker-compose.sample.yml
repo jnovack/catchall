@@ -8,6 +8,10 @@ services:
         published: 25
         protocol: tcp
         mode: host
+      - target: 993
+        published: 993
+        protocol: tcp
+        mode: host
       - target: 995
         published: 995
         protocol: tcp
