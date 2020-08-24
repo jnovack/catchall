@@ -1,14 +1,17 @@
 #!/usr/bin/with-contenv sh
 /bin/sleep 4
-echo "[*] Watching for certbot renewals"
+/bin/echo "[*] Watching for certificate renewals from certbot"
+MD5SUM=$(md5sum "/etc/letsencrypt/live/${HOSTNAME}/fullchain.pem" | cut -d " " -f1)
+/bin/echo "[-] md5sum $MD5SUM"
 while true; do
-    if [ -f /etc/letsencrypt/live/${HOSTNAME}/.deploy ]; then
+    if [[ $MD5SUM != $(md5sum "/etc/letsencrypt/live/${HOSTNAME}/fullchain.pem" | cut -d " " -f1) ]]; then
         /bin/echo "Found new certificate for ${HOSTNAME}, restarting dovecot."
+        /bin/echo "[!] md5sum updated $MD5SUM"
         /bin/cat /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem | /usr/bin/openssl x509 -noout -subject -dates
-        /bin/cp /etc/letsencrypt/live/mail.ozmonet.com/privkey.pem /etc/ssl/key.pem
-        /bin/cp /etc/letsencrypt/live/mail.ozmonet.com/fullchain.pem /etc/ssl/certificate.pem
+        /bin/cp /etc/letsencrypt/live/${HOSTNAME}/privkey.pem /etc/ssl/key.pem
+        /bin/cp /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem /etc/ssl/certificate.pem
         /bin/s6-svc -r /run/s6/services/30-dovecot
-        /bin/rm /etc/letsencrypt/live/${HOSTNAME}/.deploy
+        MD5SUM=$(md5sum "/etc/letsencrypt/live/${HOSTNAME}/fullchain.pem" | cut -d " " -f1)
     fi
     /bin/sleep 1h
 done
