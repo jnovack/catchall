@@ -1,12 +1,12 @@
 #!/usr/bin/with-contenv sh
 
 if [ -f /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem ]; then
-    /usr/bin/logger "Using /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem"
+    /usr/bin/logger "[INFO ] Using /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem"
     cp /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem /etc/ssl/certificate.pem
 fi
 
 if [ -f /etc/letsencrypt/live/${HOSTNAME}/privkey.pem ]; then
-    /usr/bin/logger "Using /etc/letsencrypt/live/${HOSTNAME}/privkey.pem"
+    /usr/bin/logger "[INFO ] Using /etc/letsencrypt/live/${HOSTNAME}/privkey.pem"
     cp /etc/letsencrypt/live/${HOSTNAME}/privkey.pem /etc/ssl/key.pem
 fi
 
