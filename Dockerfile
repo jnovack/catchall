@@ -8,6 +8,7 @@ ARG PACKAGE="user/repo"
 ARG VERSION="dirty"
 
 EXPOSE 25
+EXPOSE 993
 EXPOSE 995
 
 ENTRYPOINT [ "/init" ]
