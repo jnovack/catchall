@@ -2,7 +2,7 @@ version: '3.6'
 
 services:
   server:
-    image: jnovack/mailserver:latest
+    image: jnovack/catchall:latest
     ports:
       - target: 25
         published: 25
