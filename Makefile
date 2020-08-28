@@ -1,24 +1,13 @@
-.PHONY: clean build run dev all
-.DEFAULT_GOAL := all
+include variables.mk
 
-IMAGE?=jnovack/mailserver
-TAG?=latest
+.PHONY: build all run exec
+.DEFAULT_GOAL := run
 
-all: build
+keys:
+	openssl req -x509 -sha256 -nodes -newkey rsa:4096 -keyout config/key.pem -out config/certificate.pem -days 7200 -subj "/C=US/ST=/L=/O=/OU=Self Signed/CN=self.signed"
 
-clean:
-	docker rmi $(IMAGE):$(TAG) || true
+run:
+	docker run -it --rm -v `pwd`/config/key.pem:/etc/ssl/key.pem -v `pwd`/config/certificate.pem:/etc/ssl/certificate.pem ${APPLICATION}:${BRANCH}
 
-build:
-	docker build \
-		--build-arg BUILD_RFC3339=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
-		--build-arg COMMIT=`git rev-parse --short HEAD` \
-		--build-arg VERSION=`git describe --tags --always` \
-		-t $(IMAGE):$(TAG) .
-
-dev:
-	docker build \
-		--build-arg BUILD_RFC3339=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
-		--build-arg COMMIT=`git rev-parse --short HEAD` \
-		--build-arg VERSION=`git describe --tags --always` \
-		-t $(IMAGE):dev .
+exec:
+	docker run -it --rm --entrypoint=/bin/sh ${APPLICATION}:${BRANCH}
