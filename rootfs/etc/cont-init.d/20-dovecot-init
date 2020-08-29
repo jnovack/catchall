@@ -7,4 +7,5 @@ fi
 
 PASSWD=${PASSWORD:=$(pwgen -scnyr "'\"\\\&\!\%\/" 48 1)}
 SHAPWD=$(printf "${PASSWD}\n${PASSWD}\n" | doveadm pw -s SHA512-CRYPT)
+egrep "${CATCHALL:=catchall}" /etc/passwd | sed "s#x#$SHAPWD#" > /etc/dovecot/users
 echo "[NOTICE] Password: ${PASSWD}"

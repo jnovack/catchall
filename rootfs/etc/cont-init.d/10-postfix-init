@@ -1,5 +1,7 @@
 #!/usr/bin/with-contenv sh
 
+echo "[NOTICE] Forwarding all mail to ${CATCHALL:=catchall}"
+
 /usr/sbin/postconf "myhostname=${HOSTNAME:=mail.contoso.localdomain}"
 /usr/sbin/postconf "mydomain=${DOMAIN:=contoso.localdomain}"
 /usr/sbin/postconf "virtual_alias_domains=${ALIASES:=fabrikam.localdomain}"
@@ -11,11 +13,12 @@ done
 
 # Create DOMAIN
 /bin/echo "noreply@${DOMAIN}        nobody" > /etc/postfix/virtual
+/bin/echo "@${DOMAIN}        ${CATCHALL}" >> /etc/postfix/virtual
 
 # Create all ALIAS DOMAINS
 for d in $ALIASES; do
     /bin/echo "noreply@${d}        nobody" >> /etc/postfix/virtual
-    /bin/echo "@${d}        catchall" >> /etc/postfix/virtual
+    /bin/echo "@${d}        ${CATCHALL}" >> /etc/postfix/virtual
 done
 
 echo "nobody:                       /dev/null" > /etc/postfix/aliases
