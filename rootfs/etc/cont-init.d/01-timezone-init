@@ -1,3 +1,4 @@
 #!/usr/bin/with-contenv sh
 
+echo "[DEBUG ] Setting timezone to ${TIMEZONE}"
 /bin/cp /usr/share/zoneinfo/${TIMEZONE} /etc/localtime

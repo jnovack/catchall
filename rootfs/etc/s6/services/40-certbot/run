@@ -1,12 +1,12 @@
 #!/usr/bin/with-contenv sh
 /bin/sleep 4
-/bin/echo "[*] Watching for certificate renewals from certbot"
+/bin/echo "[NOTICE] Watching for certificate renewals from certbot for ${HOSTNAME}"
 MD5SUM=$(md5sum "/etc/letsencrypt/live/${HOSTNAME}/fullchain.pem" | cut -d " " -f1)
-/bin/echo "[-] md5sum $MD5SUM"
+/bin/echo "[DEBUG ] /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem (found) $MD5SUM"
 while true; do
     if [[ $MD5SUM != $(md5sum "/etc/letsencrypt/live/${HOSTNAME}/fullchain.pem" | cut -d " " -f1) ]]; then
-        /bin/echo "Found new certificate for ${HOSTNAME}, restarting dovecot."
-        /bin/echo "[!] md5sum updated $MD5SUM"
+        /bin/echo "[NOTICE] Found new certificate for ${HOSTNAME}, restarting dovecot."
+        /bin/echo "[INFO  ] /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem (updated) $MD5SUM"
         /bin/cat /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem | /usr/bin/openssl x509 -noout -subject -dates
         /bin/cp /etc/letsencrypt/live/${HOSTNAME}/privkey.pem /etc/ssl/key.pem
         /bin/cp /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem /etc/ssl/certificate.pem

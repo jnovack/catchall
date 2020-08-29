@@ -1,4 +1,5 @@
 #!/usr/bin/with-contenv sh
 sleep 2
-echo "[*] Starting postfix"
+
+echo "[NOTICE] Starting postfix"
 exec /usr/sbin/postfix start-fg

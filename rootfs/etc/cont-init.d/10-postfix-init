@@ -20,7 +20,9 @@ for d in $ALIASES; do
 done
 
 # Log
-/bin/cat /etc/postfix/virtual
+echo "[DEBUG ] /etc/postfix/virtual"
+echo "------------------------------"
+/bin/cat -n /etc/postfix/virtual
 
 # Process
 /usr/sbin/postmap /etc/postfix/virtual

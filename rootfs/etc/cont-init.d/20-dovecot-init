@@ -1,11 +1,10 @@
 #!/usr/bin/with-contenv sh
 
 if [ -f $PASSWORD_FILE ]; then
-    echo "Using password file ${PASSWORD_FILE}"
+    echo "[DEBUG ] Using password file ${PASSWORD_FILE}"
     PASSWORD=$(cat ${PASSWORD_FILE})
 fi
 
 PASSWD=${PASSWORD:=$(pwgen -scnyr "'\"\\\&\!\%\/" 48 1)}
 SHAPWD=$(printf "${PASSWD}\n${PASSWD}\n" | doveadm pw -s SHA512-CRYPT)
-egrep "catchall" /etc/passwd | sed "s#x#$SHAPWD#" >> /etc/dovecot/users
-echo "Password: ${PASSWD}"
+echo "[NOTICE] Password: ${PASSWD}"
