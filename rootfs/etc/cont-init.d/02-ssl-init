@@ -1,14 +1,30 @@
 #!/usr/bin/with-contenv sh
 
-if [ -f /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem ]; then
-    /bin/echo "[INFO ] Using /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem"
-    cp /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem /etc/ssl/certificate.pem
-fi
+for i in $(seq 1 ${STARTUP_DELAY:=5})
+do
+    if [ -f /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem ] && [ -f /etc/letsencrypt/live/${HOSTNAME}/privkey.pem ]; then
+        /bin/echo "[INFO  ] Found /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem"
+        cp /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem /etc/ssl/certificate.pem
+        /bin/echo "[INFO  ] Found /etc/letsencrypt/live/${HOSTNAME}/privkey.pem"
+        cp /etc/letsencrypt/live/${HOSTNAME}/privkey.pem /etc/ssl/key.pem
+        break
+    fi
 
-if [ -f /etc/letsencrypt/live/${HOSTNAME}/privkey.pem ]; then
-    /bin/echo "[INFO ] Using /etc/letsencrypt/live/${HOSTNAME}/privkey.pem"
-    cp /etc/letsencrypt/live/${HOSTNAME}/privkey.pem /etc/ssl/key.pem
-fi
+    if [ ! -f /etc/ssl/certificate.pem ] || [ ! -f /etc/ssl/key.pem ]; then
+        test -f /etc/ssl/certificate.pem || /bin/echo "[WARN  ] /etc/ssl/certificate.pem not found"
+        test -f /etc/ssl/key.pem || /bin/echo "[WARN  ] /etc/ssl/key.pem not found"
+    fi
+    echo "[INFO  ] ssl-init waiting for certificates ($i of ${STARTUP_DELAY})"
+    sleep 2
+done
 
-test -f /etc/ssl/certificate.pem || ( /bin/echo "[FATAL] /etc/ssl/certificate.pem not found" && exit 1 )
-test -f /etc/ssl/key.pem || ( /bin/echo "[FATAL] /etc/ssl/key.pem not found" && exit 1 )
+test -f /etc/ssl/certificate.pem || ( /bin/echo "[FATAL ] /etc/ssl/certificate.pem not found" && exit 1 )
+test -f /etc/ssl/key.pem || ( /bin/echo "[FATAL ] /etc/ssl/key.pem not found" && exit 1 )
+
+md5cert="$(openssl x509 -in /etc/ssl/certificate.pem  -noout -modulus | openssl md5)"
+md5key="$(openssl rsa -in /etc/ssl/key.pem -noout -modulus | openssl md5)"
+
+if [ "${md5key}" != "${md5cert}" ]; then
+    echo "[FATAL ] certificate does not match key"
+    exit 1
+fi
