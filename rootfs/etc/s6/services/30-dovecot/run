@@ -1,4 +1,11 @@
 #!/usr/bin/with-contenv sh
 
+while [ ! -f /etc/ssl/certificate.pem ] || [ ! -f /etc/ssl/key.pem ]; do
+    test -f /etc/ssl/certificate.pem || ( /bin/echo "[WARN  ] /etc/ssl/certificate.pem not found" )
+    test -f /etc/ssl/key.pem || ( /bin/echo "[WARN  ] /etc/ssl/key.pem not found" )
+    echo "[INFO  ] dovecot waiting for certificates..."
+    sleep 2
+done
+
 echo "[NOTICE] Starting dovecot"
 exec /usr/sbin/dovecot -F

@@ -1,5 +1,11 @@
 #!/usr/bin/with-contenv sh
-sleep 2
+
+while [ ! -f /etc/postfix/virtual ] || [ ! -f /etc/postfix/virtual.db ]; do
+    test -f /etc/postfix/virtual || ( /bin/echo "[WARN  ] /etc/postfix/virtual not found" )
+    test -f /etc/postfix/virtual.db || ( /bin/echo "[WARN  ] /etc/postfix/virtual.db not found" )
+    echo "[INFO  ] postfix waiting for configuration initialization ..."
+    sleep 2
+done
 
 echo "[NOTICE] Starting postfix"
 exec /usr/sbin/postfix start-fg
