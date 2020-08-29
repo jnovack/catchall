@@ -10,14 +10,15 @@ for u in $DEVNULL; do
 done
 
 # Create DOMAIN
-/bin/echo "noreply@${DOMAIN}        nobody" >> /etc/postfix/virtual
-/bin/echo "@${DOMAIN}        catchall" >> /etc/postfix/virtual
+/bin/echo "noreply@${DOMAIN}        nobody" > /etc/postfix/virtual
 
 # Create all ALIAS DOMAINS
 for d in $ALIASES; do
     /bin/echo "noreply@${d}        nobody" >> /etc/postfix/virtual
     /bin/echo "@${d}        catchall" >> /etc/postfix/virtual
 done
+
+echo "nobody:                       /dev/null" > /etc/postfix/aliases
 
 # Log
 echo "[DEBUG ] /etc/postfix/virtual"
