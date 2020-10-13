@@ -6,14 +6,14 @@ echo "[NOTICE] Forwarding all mail to ${CATCHALL:=catchall}"
 /usr/sbin/postconf "mydomain=${DOMAIN:=contoso.localdomain}"
 /usr/sbin/postconf "virtual_alias_domains=${ALIASES:=fabrikam.localdomain}"
 
+# Create DOMAIN
+/bin/echo "noreply@${DOMAIN}        nobody" > /etc/postfix/virtual
+/bin/echo "@${DOMAIN}        ${CATCHALL}" >> /etc/postfix/virtual
+
 # BlackHole Email Addresses
 for u in $DEVNULL; do
     /bin/echo "${u}        nobody" >> /etc/postfix/virtual
 done
-
-# Create DOMAIN
-/bin/echo "noreply@${DOMAIN}        nobody" > /etc/postfix/virtual
-/bin/echo "@${DOMAIN}        ${CATCHALL}" >> /etc/postfix/virtual
 
 # Create all ALIAS DOMAINS
 for d in $ALIASES; do
