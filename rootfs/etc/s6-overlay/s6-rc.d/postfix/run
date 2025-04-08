@@ -1,8 +1,10 @@
-#!/usr/bin/with-contenv sh
+#!/command/with-contenv sh
 
-while [ ! -f /etc/postfix/virtual ] || [ ! -f /etc/postfix/virtual.db ]; do
+chown catchall:catchall /var/mail
+
+while [ ! -f /etc/postfix/virtual ] || [ ! -f /etc/postfix/virtual.lmdb ]; do
     test -f /etc/postfix/virtual || ( /bin/echo "[WARN  ] /etc/postfix/virtual not found" )
-    test -f /etc/postfix/virtual.db || ( /bin/echo "[WARN  ] /etc/postfix/virtual.db not found" )
+    test -f /etc/postfix/virtual.lmdb || ( /bin/echo "[WARN  ] /etc/postfix/virtual.lmdb not found" )
     echo "[INFO  ] postfix waiting for configuration initialization ..."
     sleep 2
 done

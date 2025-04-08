@@ -1,4 +1,5 @@
-#!/usr/bin/with-contenv sh
+#!/command/with-contenv sh
+
 /bin/sleep 4
 /bin/echo "[NOTICE] Watching for certificate renewals from certbot for ${HOSTNAME}"
 MD5SUM=$(md5sum "/etc/letsencrypt/live/${HOSTNAME}/fullchain.pem" | cut -d " " -f1)

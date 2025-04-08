@@ -1,4 +1,4 @@
-#!/usr/bin/with-contenv sh
+#!/command/with-contenv sh
 
 while [ ! -f /etc/ssl/certificate.pem ] || [ ! -f /etc/ssl/key.pem ]; do
     test -f /etc/ssl/certificate.pem || ( /bin/echo "[WARN  ] /etc/ssl/certificate.pem not found" )

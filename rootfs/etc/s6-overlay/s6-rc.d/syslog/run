@@ -1,3 +1,4 @@
-#!/usr/bin/with-contenv sh
+#!/command/with-contenv sh
+
 echo "[NOTICE] Starting rsyslog"
 exec /usr/sbin/rsyslogd -n
