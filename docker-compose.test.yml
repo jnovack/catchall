@@ -1,5 +1,3 @@
-version: '3.6'
-
 services:
   server:
     build: .
@@ -23,10 +21,16 @@ services:
       - "HOSTNAME=mail.contoso.com"
       - "DOMAIN=contoso.com"
       - "DEVNULL=sales@contoso.com webmaster@contoso.com"
-      - "ALIASES=contoso.home"
+      - "ALIASES=contoso.local"
       - "TIMEZONE=America/New_York"
       - "PASSWORD_FILE=/etc/letsencrypt/live/password.txt"
       - "SLACK_URL_FILE=/run/secrets/slack-webhook"
+    command: >
+      /bin/sh -c "
+        trap exit TERM;
+        echo 'smtpd_forbid_unauth_pipelining = no' >> /etc/postfix/main.cf;
+        sleep 120 & wait $${!};
+      "
     volumes:
       - storage:/var/mail
       - certificates:/etc/letsencrypt/live/
@@ -38,14 +42,15 @@ services:
     hostname: bootloader
     environment:
       - "TZ=America/New_York"
-    entrypoint: /bin/sh -c "(
-                  trap exit TERM;
-                  mkdir /etc/letsencrypt/live/mail.contoso.com;
-                  echo 'hunter2' > /etc/letsencrypt/live/password.txt;
-                  openssl req -x509 -sha256 -nodes -newkey rsa:4096 -keyout /etc/letsencrypt/live/mail.contoso.com/privkey.pem -out /etc/letsencrypt/live/mail.contoso.com/fullchain.pem -days 7200 -subj '/CN=self.signed/';
-                  sleep 300 & wait $${!};
-                  exit 99;
-                )"
+    entrypoint: >
+      /bin/sh -c "(
+        trap exit TERM;
+        mkdir /etc/letsencrypt/live/mail.contoso.com;
+        echo 'hunter2' > /etc/letsencrypt/live/password.txt;
+        openssl req -x509 -sha256 -nodes -newkey rsa:4096 -keyout /etc/letsencrypt/live/mail.contoso.com/privkey.pem -out /etc/letsencrypt/live/mail.contoso.com/fullchain.pem -days 7200 -subj '/CN=self.signed/';
+        sleep 120 & wait $${!};
+        exit 99;
+      )"
     volumes:
       - certificates:/etc/letsencrypt/live/
 
@@ -58,37 +63,38 @@ services:
       - server
     environment:
       - "TZ=America/New_York"
-    entrypoint: /bin/sh -c "(
-                  trap exit TERM;
-                  echo 'EHLO nothing.com' > /smtp.txt;
-                  echo 'mail from:<me@nothing.com>' >> /smtp.txt;
-                  echo 'rcpt to:fhqwhgads@contoso.home' >> /smtp.txt;
-                  echo 'data' >> /smtp.txt;
-                  echo 'Subject:Test Email' >> /smtp.txt;
-                  echo 'Body of the email.' >> /smtp.txt;
-                  echo '' >> /smtp.txt;
-                  echo '.' >> /smtp.txt;
-                  echo 'quit' >> /smtp.txt;
-                  while :; do
-                    nc -z server 25 && break;
-                    echo 'waiting for smtp...';
-                    sleep 2 & wait $${!};
-                  done;
-                  nc -i 2 server 25 < /smtp.txt;
-                  echo 'USER catchall' > /pop3.txt;
-                  echo 'PASS hunter2' >> /pop3.txt;
-                  echo 'LIST' >> /pop3.txt;
-                  echo 'RETR 1' >> /pop3.txt;
-                  echo 'DELE 1' >> /pop3.txt;
-                  echo 'QUIT' >> /pop3.txt;
-                  while :; do
-                    nc -z server 995 && break;
-                    echo 'waiting for pop3...';
-                    sleep 2 & wait $${!};
-                  done;
-                  cat pop3.txt | openssl s_client -quiet -servername mail.contoso.com -connect server:995 > /output.txt;
-                  egrep 'fhqwhgads@contoso.home' output.txt && exit 0 || exit 1;
-                )"
+    entrypoint: >
+      /bin/sh -c "(
+        trap exit TERM;
+        echo 'EHLO nothing.com' > /smtp.txt;
+        echo 'mail from:<me@nothing.com>' >> /smtp.txt;
+        echo 'rcpt to:fhqwhgads@contoso.local' >> /smtp.txt;
+        echo 'data' >> /smtp.txt;
+        echo 'Subject:Test Email' >> /smtp.txt;
+        echo 'Body of the email.' >> /smtp.txt;
+        echo '' >> /smtp.txt;
+        echo '.' >> /smtp.txt;
+        echo 'quit' >> /smtp.txt;
+        while :; do
+          nc -z server 25 && break;
+          echo 'waiting for smtp...';
+          sleep 2 & wait $${!};
+        done;
+        nc -i 2 server 25 < /smtp.txt;
+        echo 'USER catchall' > /pop3.txt;
+        echo 'PASS hunter2' >> /pop3.txt;
+        echo 'LIST' >> /pop3.txt;
+        echo 'RETR 1' >> /pop3.txt;
+        echo 'DELE 1' >> /pop3.txt;
+        echo 'QUIT' >> /pop3.txt;
+        while :; do
+          nc -z server 995 && break;
+          echo 'waiting for pop3...';
+          sleep 2 & wait $${!};
+        done;
+        cat pop3.txt | openssl s_client -CAfile /etc/letsencrypt/live/mail.contoso.com/fullchain.pem -quiet -servername mail.contoso.com -connect server:995 > /output.txt;
+        egrep 'fhqwhgads@contoso.local' output.txt && exit 0 || exit 1;
+      )"
     volumes:
       - certificates:/etc/letsencrypt/live/
 

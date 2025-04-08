@@ -8,7 +8,7 @@ inet_interfaces = all
 inet_protocols = ipv4
 mydestination = $myhostname, $mydomain
 unknown_local_recipient_reject_code = 550
-alias_maps = hash:/etc/postfix/aliases
+alias_maps = lmdb:/etc/postfix/aliases
 debug_peer_level = 2
 debugger_command =
 	 PATH=/bin:/usr/bin:/usr/local/bin:/usr/X11R6/bin
@@ -21,7 +21,7 @@ html_directory = no
 manpage_directory = /usr/share/man
 sample_directory = /usr/share/doc/postfix-2.10.1/samples
 readme_directory = /usr/share/doc/postfix-2.10.1/README_FILES
-virtual_alias_maps = hash:/etc/postfix/virtual
+virtual_alias_maps = lmdb:/etc/postfix/virtual
 smtpd_helo_restrictions =
     permit_mynetworks,
     reject_invalid_helo_hostname,
@@ -30,10 +30,18 @@ smtpd_helo_restrictions =
 smtpd_sender_restrictions = reject_unknown_sender_domain
 smtpd_recipient_restrictions =
     reject_unauth_destination,
-    reject_rbl_client zen.spamhaus.org,
-    reject_rhsbl_reverse_client dbl.spamhaus.org,
-    reject_rhsbl_helo dbl.spamhaus.org,
-    reject_rhsbl_sender dbl.spamhaus.org
+    reject_rbl_client bl.spamcop.net,
+    reject_rbl_client dnsbl.sorbs.net
+    reject_rhsbl_reverse_client rhsbl.sorbs.net,
+    reject_rhsbl_reverse_client bl.spamcop.net,
+    reject_rhsbl_reverse_client dnsbl.sorbs.net,
+    reject_rhsbl_helo bl.spamcop.net,
+    reject_rhsbl_helo dnsbl.sorbs.net,
+    reject_rhsbl_helo cbl.abuseat.org,
+    reject_rhsbl_sender bl.spamcop.net,
+    reject_rhsbl_sender dnsbl.sorbs.net,
+    reject_rhsbl_sender rhsbl.sorbs.net,
+    reject_rhsbl_sender blacklist.mailserver.com
 smtpd_client_restrictions =
     permit_mynetworks,
     reject_unauth_pipelining,
