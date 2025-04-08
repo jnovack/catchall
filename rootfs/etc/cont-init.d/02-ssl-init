@@ -1,4 +1,4 @@
-#!/usr/bin/with-contenv sh
+#!/command/with-contenv sh
 
 for i in $(seq 1 ${STARTUP_DELAY:=5})
 do
@@ -28,3 +28,9 @@ if [ "${md5key}" != "${md5cert}" ]; then
     echo "[FATAL ] certificate does not match key"
     exit 1
 fi
+
+chown root:root /etc/ssl/certificate.pem
+chown root:root /etc/ssl/key.pem
+
+chmod 0400 /etc/ssl/certificate.pem
+chmod 0400 /etc/ssl/key.pem

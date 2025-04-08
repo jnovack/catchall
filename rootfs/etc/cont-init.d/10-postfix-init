@@ -1,4 +1,6 @@
-#!/usr/bin/with-contenv sh
+#!/command/with-contenv sh
+
+echo "mynetworks = $(ip a | grep inet | awk '{print $2}' | cut -d'.' -f1-3 | tail -1).0/24" >> /etc/postfix/main.cf
 
 echo "[NOTICE] Forwarding all mail to ${CATCHALL:=catchall}"
 
