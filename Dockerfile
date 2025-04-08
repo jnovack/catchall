@@ -13,7 +13,7 @@ EXPOSE 995
 
 ENTRYPOINT [ "/init" ]
 
-ARG S6_OVERLAY_VERSION=v1.22.1.0
+ARG S6_OVERLAY_VERSION=3.2.0.2
 
 LABEL org.opencontainers.image.ref.name="${PACKAGE}" \
     org.opencontainers.image.created=$BUILD_RFC3339 \
@@ -27,11 +27,15 @@ LABEL org.opencontainers.image.ref.name="${PACKAGE}" \
     org.opencontainers.image.url="https://hub.docker.com/r/${PACKAGE}/"
 
 RUN apk add --no-cache s6 postfix rsyslog tzdata pwgen dovecot dovecot-pop3d curl && \
-    curl -sSL https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_VERSION}/s6-overlay-amd64.tar.gz | tar xfz - -C / && \
     mkdir -p /var/mail && \
-    chown mail.mail /var/mail && \
+    chown mail:mail /var/mail && \
     addgroup -g 65530 catchall && \
     adduser -u 65530 -G catchall -D catchall
+
+ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz /tmp
+RUN tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz
+ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-x86_64.tar.xz /tmp
+RUN tar -C / -Jxpf /tmp/s6-overlay-x86_64.tar.xz
 
 COPY rootfs /
 
