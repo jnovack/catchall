@@ -11,6 +11,9 @@ keys:
 run:
 	docker run -it --rm -v `pwd`/config/key.pem:/etc/ssl/key.pem -v `pwd`/config/certificate.pem:/etc/ssl/certificate.pem ${APPLICATION}:${BRANCH}
 
+build:
+	docker buildx build --platform linux/amd64,linux/arm64 . -t jnovack/catchall:latest
+
 nuke:
 	docker-compose -f docker-compose.test.yml down --rmi all --remove-orphans -v -t 1
 
