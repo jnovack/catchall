@@ -33,7 +33,6 @@ jobs:
           images: ${{ vars.ORGANIZATION }}/${{ vars.REPOSITORY }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
-            type=ref,event=branch
             type=semver,pattern={{major}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{version}}
