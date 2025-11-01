@@ -1,27 +1,27 @@
 compatibility_level = 9999
 queue_directory = /var/spool/postfix
 command_directory = /usr/sbin
-daemon_directory = /usr/libexec/postfix
+daemon_directory = /usr/lib/postfix/sbin
 data_directory = /var/lib/postfix
 mail_owner = postfix
 inet_interfaces = all
 inet_protocols = ipv4
 mydestination = $myhostname, $mydomain
 unknown_local_recipient_reject_code = 550
-alias_maps = lmdb:/etc/postfix/aliases
+alias_maps = texthash:/etc/postfix/aliases
 debug_peer_level = 2
 debugger_command =
 	 PATH=/bin:/usr/bin:/usr/local/bin:/usr/X11R6/bin
 	 ddd $daemon_directory/$process_name $process_id & sleep 5
-sendmail_path = /usr/sbin/sendmail.postfix
-newaliases_path = /usr/bin/newaliases.postfix
-mailq_path = /usr/bin/mailq.postfix
+sendmail_path = /usr/sbin/sendmail
+newaliases_path = /usr/bin/newaliases
+mailq_path = /usr/bin/mailq
 setgid_group = postdrop
 html_directory = no
 manpage_directory = /usr/share/man
-sample_directory = /usr/share/doc/postfix-2.10.1/samples
-readme_directory = /usr/share/doc/postfix-2.10.1/README_FILES
-virtual_alias_maps = lmdb:/etc/postfix/virtual
+sample_directory = /usr/share/doc/postfix/examples
+readme_directory = /usr/share/doc/postfix/README_FILES
+virtual_alias_maps = texthash:/etc/postfix/virtual
 smtpd_helo_restrictions =
     permit_mynetworks,
     reject_invalid_helo_hostname,
@@ -57,6 +57,9 @@ smtpd_recipient_limit = 10
 smtpd_helo_required = yes
 disable_vrfy_command = yes
 mail_spool_directory = /var/mail
+# Deliver all local mail to Dovecot LMTP so Sieve can process delivery
+virtual_transport = lmtp:unix:private/dovecot-lmtp
+local_transport = lmtp:unix:private/dovecot-lmtp
 #
 # myhostname = variable-myhostname
 # mydomain = variable-mydomain

@@ -8,4 +8,5 @@ while [ ! -f /etc/ssl/certificate.pem ] || [ ! -f /etc/ssl/key.pem ]; do
 done
 
 echo "[NOTICE] Starting dovecot"
+/usr/sbin/dovecot --version
 exec /usr/sbin/dovecot -F

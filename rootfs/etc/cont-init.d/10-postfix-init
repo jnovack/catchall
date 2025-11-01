@@ -32,4 +32,6 @@ echo "------------------------------"
 
 # Process
 /usr/sbin/postmap /etc/postfix/virtual
+ls -la /etc/postfix/virtual*
 /usr/sbin/postalias /etc/postfix/aliases
+ls -la /etc/postfix/aliases*

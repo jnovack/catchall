@@ -28,7 +28,9 @@ services:
     command: >
       /bin/sh -c "
         trap exit TERM;
+        /usr/sbin/postconf -X smtpd_sender_restrictions;
         echo 'smtpd_forbid_unauth_pipelining = no' >> /etc/postfix/main.cf;
+        netstat -tulnp;
         sleep 120 & wait $${!};
       "
     volumes:
@@ -66,8 +68,8 @@ services:
     entrypoint: >
       /bin/sh -c "(
         trap exit TERM;
-        echo 'EHLO nothing.com' > /smtp.txt;
-        echo 'mail from:<me@nothing.com>' >> /smtp.txt;
+        echo 'EHLO fabrikam.home' > /smtp.txt;
+        echo 'mail from:<me@fabrikam.home>' >> /smtp.txt;
         echo 'rcpt to:fhqwhgads@contoso.local' >> /smtp.txt;
         echo 'data' >> /smtp.txt;
         echo 'Subject:Test Email' >> /smtp.txt;
@@ -93,6 +95,7 @@ services:
           sleep 2 & wait $${!};
         done;
         cat pop3.txt | openssl s_client -CAfile /etc/letsencrypt/live/mail.contoso.com/fullchain.pem -quiet -servername mail.contoso.com -connect server:995 > /output.txt;
+        cat /output.txt;
         egrep 'fhqwhgads@contoso.local' output.txt && exit 0 || exit 1;
       )"
     volumes:

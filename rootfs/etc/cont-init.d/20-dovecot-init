@@ -1,11 +1,71 @@
 #!/command/with-contenv sh
 
-if [ -f $PASSWORD_FILE ]; then
+if [ -f "$PASSWORD_FILE" ]; then
     echo "[DEBUG ] Using password file ${PASSWORD_FILE}"
-    PASSWORD=$(cat ${PASSWORD_FILE})
+    PASSWORD=$(cat "${PASSWORD_FILE}")
 fi
 
+echo "[NOTICE] Catchall user: ${CATCHALL:=catchall}"
 PASSWD=${PASSWORD:=$(pwgen -scnyr "'\"\\\&\!\%\/" 48 1)}
-SHAPWD=$(printf "${PASSWD}\n${PASSWD}\n" | doveadm pw -s SHA512-CRYPT)
-egrep "${CATCHALL:=catchall}" /etc/passwd | sed "s#x#$SHAPWD#" > /etc/dovecot/users
+SHAPWD=$(printf "%s\n%s\n" "${PASSWD}" "${PASSWD}"| doveadm pw -s SHA512-CRYPT)
+grep -E "${CATCHALL}" /etc/passwd | sed "s#x#$SHAPWD#" > /etc/dovecot/users
 echo "[NOTICE] Password: ${PASSWD}"
+
+# Optionally load a per-user Sieve script for the catchall user from a secret
+# Supported inputs:
+#   - SIEVE_FILE: path to a sieve script (e.g., /run/secrets/catchall-sieve)
+#   - SIEVE: inline sieve content
+if [ -n "${CATCHALL}" ]; then
+    CATCHALL_HOME=$(awk -F: -v u="${CATCHALL}" '($1==u){print $6}' /etc/passwd)
+    : "${CATCHALL_HOME:=/home/${CATCHALL}}"
+    if [ -n "${SIEVE_FILE}" ] && [ -f "${SIEVE_FILE}" ]; then
+        echo "[NOTICE] Installing user sieve from ${SIEVE_FILE}"
+        mkdir -p "${CATCHALL_HOME}/sieve"
+        cp "${SIEVE_FILE}" "${CATCHALL_HOME}/sieve/active.sieve"
+        ln -sf "${CATCHALL_HOME}/sieve/active.sieve" "${CATCHALL_HOME}/.dovecot.sieve"
+    elif [ -n "${SIEVE}" ]; then
+        echo "[NOTICE] Installing user sieve from SIEVE env"
+        mkdir -p "${CATCHALL_HOME}/sieve"
+        printf "%s\n" "${SIEVE}" > "${CATCHALL_HOME}/sieve/active.sieve"
+        ln -sf "${CATCHALL_HOME}/sieve/active.sieve" "${CATCHALL_HOME}/.dovecot.sieve"
+    else
+        echo "[INFO  ] No SIEVE_FILE or SIEVE provided; skipping per-user Sieve setup"
+        rm -f "${CATCHALL_HOME}/sieve/active.sieve" "${CATCHALL_HOME}/.dovecot.sieve"
+    fi
+    if [ -f "${CATCHALL_HOME}/sieve/active.sieve" ]; then
+        chown -R "${CATCHALL}:${CATCHALL}" "${CATCHALL_HOME}/sieve"
+        chown "${CATCHALL}:${CATCHALL}" "${CATCHALL_HOME}/.dovecot.sieve" 2>/dev/null || true
+        chmod 700 "${CATCHALL_HOME}/sieve"
+        chmod 600 "${CATCHALL_HOME}/sieve/active.sieve"
+        chmod 600 "${CATCHALL_HOME}/.dovecot.sieve" 2>/dev/null || true
+    fi
+fi
+
+# Optional: install a global Sieve that runs before user scripts
+# Supported inputs:
+#   - GLOBAL_SIEVE_FILE: path to a sieve script (e.g., /run/secrets/global-sieve)
+#   - GLOBAL_SIEVE: inline sieve content
+if [ -n "${GLOBAL_SIEVE_FILE}" ] && [ -f "${GLOBAL_SIEVE_FILE}" ]; then
+    echo "[NOTICE] Installing global sieve from ${GLOBAL_SIEVE_FILE}"
+    mkdir -p /etc/dovecot/sieve /etc/dovecot/local.d
+    cp "${GLOBAL_SIEVE_FILE}" /etc/dovecot/sieve/global.sieve
+    chmod 644 /etc/dovecot/sieve/global.sieve
+    cat <<'EOF' > /etc/dovecot/local.d/10-global-sieve.conf
+plugin {
+    sieve_before = /etc/dovecot/sieve/global.sieve
+}
+EOF
+elif [ -n "${GLOBAL_SIEVE}" ]; then
+    echo "[NOTICE] Installing global sieve from GLOBAL_SIEVE env"
+    mkdir -p /etc/dovecot/sieve /etc/dovecot/local.d
+    printf "%s\n" "${GLOBAL_SIEVE}" > /etc/dovecot/sieve/global.sieve
+    chmod 644 /etc/dovecot/sieve/global.sieve
+    cat <<'EOF' > /etc/dovecot/local.d/10-global-sieve.conf
+plugin {
+    sieve_before = /etc/dovecot/sieve/global.sieve
+}
+EOF
+elif [ -f /etc/dovecot/local.d/10-global-sieve.conf ]; then
+    echo "[INFO  ] Removing global sieve override"
+    rm -f /etc/dovecot/local.d/10-global-sieve.conf /etc/dovecot/sieve/global.sieve
+fi
