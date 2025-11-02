@@ -1,7 +1,5 @@
 #!/command/with-contenv sh
 
-chown catchall:catchall /var/mail
-
 while [ ! -f /etc/postfix/virtual ] || [ ! -f /etc/postfix/virtual.db ]; do
     test -f /etc/postfix/virtual || ( /bin/echo "[WARN  ] /etc/postfix/virtual not found" )
     test -f /etc/postfix/virtual.db || ( /bin/echo "[WARN  ] /etc/postfix/virtual.db not found" )
