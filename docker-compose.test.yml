@@ -18,13 +18,42 @@ services:
         protocol: tcp
         mode: host
     environment:
-      - "HOSTNAME=mail.contoso.com"
-      - "DOMAIN=contoso.com"
-      - "DEVNULL=sales@contoso.com webmaster@contoso.com"
-      - "ALIASES=contoso.local"
-      - "TIMEZONE=America/New_York"
-      - "PASSWORD_FILE=/etc/letsencrypt/live/password.txt"
-      - "SLACK_URL_FILE=/run/secrets/slack-webhook"
+      HOSTNAME: mail.contoso.com
+      DOMAIN: contoso.com
+      DEVNULL: "sales@contoso.com webmaster@contoso.com"
+      ALIASES: contoso.local
+      TIMEZONE: America/New_York
+      PASSWORD_FILE: /etc/letsencrypt/live/password.txt
+      SLACK_URL_FILE: /run/secrets/slack-webhook
+      SIEVE: |
+        # NOTE: All dollar signs are escaped twice for YAML encoding. $$
+        require [
+          "variables", "regex", "foreverypart", "mime",
+          "extracttext", "body", "vnd.dovecot.execute"
+        ];
+
+        # 1) Flatten text from text/plain and text/html parts into $${btxt}
+        set "btxt" "";
+        foreverypart {
+          # Pull human-readable text out of the part (HTML gets de-tagged)
+          extracttext :first 1048576 "btxt";
+        }
+
+        # 2) Gate on the phrase (case-insensitive) in Subject OR extracted body
+        if anyof (
+          header :comparator "i;ascii-casemap" :contains "Subject" "verification code",
+          string :comparator "i;ascii-casemap" :contains "$${btxt}" "verification code"
+        ) {
+          # 3) Capture 6 digits not glued to a 7th digit; allow prefix '>' or whitespace or start.
+          #    This runs on $${btxt}, so capture groups work: $${1}=prefix, $${2}=code, $${3}=suffix
+          if string :regex "$${btxt}" "(^|[>[:space:]])([0-9]{6})([^0-9]|$$)" {
+            set "vericode" "$${2}";
+            # Pass args as a LIST so $$1 exists in your script
+            execute "write-code.sh" ["$${vericode}"];
+          }
+        }
+
+        keep;
     command: >
       /bin/sh -c "
         chmod 0777 /shared

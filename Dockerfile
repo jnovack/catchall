@@ -39,6 +39,7 @@ RUN set -eux; \
   dovecot-imapd \
   dovecot-lmtpd \
   dovecot-sieve \
+  dovecot-managesieved \
   iproute2 \
   net-tools \
   postfix \
@@ -50,7 +51,10 @@ RUN set -eux; \
   mkdir -p /var/mail; \
   chown mail:mail /var/mail; \
   groupadd -g 65530 catchall; \
-  useradd -u 65530 -g catchall -d /home/catchall -m -s /usr/sbin/nologin catchall
+  useradd -u 65530 -g catchall -d /home/catchall -m -s /usr/sbin/nologin catchall; \
+  mkdir -p /home/catchall/sieve-trace; \
+  chown catchall:catchall /home/catchall/sieve-trace; \
+  chmod 755 /home/catchall/sieve-trace/
 
 ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz /tmp
 RUN tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz

@@ -22,17 +22,17 @@ if [ -n "${CATCHALL}" ]; then
         echo "[NOTICE] Installing user sieve from ${SIEVE_FILE}"
         mkdir -p "${CATCHALL_HOME}/sieve"
         cp "${SIEVE_FILE}" "${CATCHALL_HOME}/sieve/active.sieve"
-        ln -sf "${CATCHALL_HOME}/sieve/active.sieve" "${CATCHALL_HOME}/.dovecot.sieve"
     elif [ -n "${SIEVE}" ]; then
         echo "[NOTICE] Installing user sieve from SIEVE env"
         mkdir -p "${CATCHALL_HOME}/sieve"
         printf "%s\n" "${SIEVE}" > "${CATCHALL_HOME}/sieve/active.sieve"
-        ln -sf "${CATCHALL_HOME}/sieve/active.sieve" "${CATCHALL_HOME}/.dovecot.sieve"
     else
         echo "[INFO  ] No SIEVE_FILE or SIEVE provided; skipping per-user Sieve setup"
         rm -f "${CATCHALL_HOME}/sieve/active.sieve" "${CATCHALL_HOME}/.dovecot.sieve"
     fi
     if [ -f "${CATCHALL_HOME}/sieve/active.sieve" ]; then
+        rm -f "${CATCHALL_HOME}/.dovecot.sieve"
+        cp "${CATCHALL_HOME}/sieve/active.sieve" "${CATCHALL_HOME}/.dovecot.sieve"
         chown -R "${CATCHALL}:${CATCHALL}" "${CATCHALL_HOME}/sieve"
         chown "${CATCHALL}:${CATCHALL}" "${CATCHALL_HOME}/.dovecot.sieve" 2>/dev/null || true
         chmod 700 "${CATCHALL_HOME}/sieve"
@@ -69,3 +69,8 @@ elif [ -f /etc/dovecot/local.d/10-global-sieve.conf ]; then
     echo "[INFO  ] Removing global sieve override"
     rm -f /etc/dovecot/local.d/10-global-sieve.conf /etc/dovecot/sieve/global.sieve
 fi
+
+mkdir -p /usr/lib/dovecot/sieve-{execute,pipe}
+chmod 755 /usr/lib/dovecot/sieve-{execute,pipe}
+
+ls -la /usr/lib/dovecot/sieve-{execute,pipe}

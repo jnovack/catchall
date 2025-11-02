@@ -3,6 +3,7 @@ FROM alpine:latest
 RUN apk update && \
   apk add --no-cache \
   openssl \
+  curl \
   netcat-openbsd
 
 COPY entrypoint.sh /entrypoint.sh
