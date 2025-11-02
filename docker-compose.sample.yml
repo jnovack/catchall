@@ -1,4 +1,4 @@
-version: '3.6'
+version: "3.6"
 
 services:
   server:
@@ -25,7 +25,6 @@ services:
       - "PASSWORD_FILE=/run/secrets/catchall-password"
       - "SLACK_URL_FILE=/run/secrets/slack-webhook"
     volumes:
-      - storage:/var/mail
       - certificates:/etc/letsencrypt/
     logging:
       driver: syslog
@@ -51,7 +50,6 @@ services:
         tag: docker/mail/letsencrypt/{{.ID}}
 
 volumes:
-  storage:
   letsencrypt:
   certificates:
 

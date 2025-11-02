@@ -27,6 +27,7 @@ services:
       - "SLACK_URL_FILE=/run/secrets/slack-webhook"
     command: >
       /bin/sh -c "
+        chmod 0777 /shared
         trap exit TERM;
         /usr/sbin/postconf -X smtpd_sender_restrictions;
         echo 'smtpd_forbid_unauth_pipelining = no' >> /etc/postfix/main.cf;
@@ -34,8 +35,8 @@ services:
         sleep 120 & wait $${!};
       "
     volumes:
-      - storage:/var/mail
       - certificates:/etc/letsencrypt/live/
+      - shared:/shared
 
   bootloader:
     build:
@@ -68,7 +69,8 @@ services:
     entrypoint: /entrypoint.sh
     volumes:
       - certificates:/etc/letsencrypt/live/
+      - shared:/shared
 
 volumes:
-  storage:
   certificates:
+  shared:
