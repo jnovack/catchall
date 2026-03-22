@@ -1,12 +1,13 @@
 #!/command/with-contenv sh
+# shellcheck shell=bash
 
 for i in $(seq 1 ${STARTUP_DELAY:=5})
 do
-    if [ -f /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem ] && [ -f /etc/letsencrypt/live/${HOSTNAME}/privkey.pem ]; then
+    if [ -f "/etc/letsencrypt/live/${HOSTNAME}/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/${HOSTNAME}/privkey.pem" ]; then
         /bin/echo "[INFO  ] Found /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem"
-        cp /etc/letsencrypt/live/${HOSTNAME}/fullchain.pem /etc/ssl/certificate.pem
+        cp "/etc/letsencrypt/live/${HOSTNAME}/fullchain.pem" /etc/ssl/certificate.pem
         /bin/echo "[INFO  ] Found /etc/letsencrypt/live/${HOSTNAME}/privkey.pem"
-        cp /etc/letsencrypt/live/${HOSTNAME}/privkey.pem /etc/ssl/key.pem
+        cp "/etc/letsencrypt/live/${HOSTNAME}/privkey.pem" /etc/ssl/key.pem
         break
     fi
 

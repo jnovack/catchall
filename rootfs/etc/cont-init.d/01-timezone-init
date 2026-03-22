@@ -1,4 +1,5 @@
 #!/command/with-contenv sh
+# shellcheck shell=sh
 
 echo "[DEBUG ] Setting timezone to ${TIMEZONE}"
-/bin/cp /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
+/bin/cp "/usr/share/zoneinfo/${TIMEZONE}" /etc/localtime

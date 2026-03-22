@@ -1,4 +1,5 @@
 #!/command/with-contenv sh
+# shellcheck shell=bash
 
 if [ -f "$PASSWORD_FILE" ]; then
     echo "[DEBUG ] Using password file ${PASSWORD_FILE}"
