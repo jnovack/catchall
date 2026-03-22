@@ -1,6 +1,5 @@
 # Testing
 
-
 The file `docker-compose.test.yml` is specific to Docker Hub to perform
 [automated repository tests](https://docs.docker.com/docker-hub/builds/automated-testing/),
 but we can use the file in the same manner to perform local testing.  It also
