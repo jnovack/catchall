@@ -76,7 +76,18 @@ _DNS_RESP=$(curl -sf --resolve "cloudflare-dns.com:443:1.1.1.1" \
 if [ -z "${_DNS_RESP}" ]; then
     echo "[WARN  ] Could not reach DNS resolver; skipping DKIM record validation"
 else
-    _DNS_KEY=$(printf '%s' "${_DNS_RESP}" | grep -oE 'p=[A-Za-z0-9+/=]+' | head -1 | cut -c3-)
+    # Cloudflare DoH may return long TXT values split into multiple quoted chunks:
+    # p=AAAA...\" \"BBBB...
+    # Capture the full sequence and normalize it back to one continuous base64 key.
+    _DNS_KEY=$(printf '%s' "${_DNS_RESP}" | awk '
+        match($0, /p=[A-Za-z0-9+\/=]+(\\\" \\\"[A-Za-z0-9+\/=]+)*/) {
+            key = substr($0, RSTART, RLENGTH)
+            sub(/^p=/, "", key)
+            gsub(/\\\" \\\"/, "", key)
+            print key
+            exit
+        }
+    ')
     if [ -z "${_DNS_KEY}" ]; then
         echo "[WARN  ] DKIM TXT record not found: ${DKIM_SELECTOR}._domainkey.${DKIM_DOMAIN}"
         echo "[WARN  ] Publish DNS record: v=DKIM1; k=rsa; p=${_DKIM_PUBKEY}"
@@ -84,8 +95,8 @@ else
         echo "[NOTICE] DKIM DNS record verified: key matches"
     else
         echo "[WARN  ] DKIM DNS key mismatch — DNS record and private key do not agree"
-        echo "[WARN  ] DNS has:     $(printf '%s' "${_DNS_KEY}" | cut -c1-48)..."
-        echo "[WARN  ] Key expects: $(printf '%s' "${_DKIM_PUBKEY}" | cut -c1-48)..."
+        echo "[WARN  ] DNS has:     $(printf '%s' "${_DNS_KEY}" )..."
+        echo "[WARN  ] Key expects: $(printf '%s' "${_DKIM_PUBKEY}" )..."
     fi
 fi
 
