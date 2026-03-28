@@ -1,6 +1,6 @@
 include variables.mk
 
-.PHONY: build all run exec
+.PHONY: build all run exec nuke sut sut-basic test-dkim test-global-sieve _sut-run-basic _sut-run-global-sieve _sut-run-dkim
 .DEFAULT_GOAL := run
 
 CONTAINER ?= sut
@@ -17,6 +17,7 @@ build:
 nuke:
 	docker-compose -f test/basic/docker-compose.test.yml down --rmi all --remove-orphans -v -t 1
 	docker-compose -f test/dkim/docker-compose.test.yml down --rmi all --remove-orphans -v -t 1
+	docker-compose -f test/global-sieve/docker-compose.test.yml down --rmi all --remove-orphans -v -t 1
 
 debug:
 	docker start catchall-server-1
@@ -25,8 +26,24 @@ debug:
 exec:
 	docker run -it --rm --network=catchall_default --entrypoint=/bin/sh debug
 
-sut: nuke
+_sut-run-basic:
 	docker-compose -f test/basic/docker-compose.test.yml up --exit-code-from sut
 
-test-dkim: nuke
+_sut-run-global-sieve:
+	docker-compose -f test/global-sieve/docker-compose.test.yml up --exit-code-from sut
+	docker-compose -f test/global-sieve/docker-compose.test.yml logs server | grep -q "Installing global sieve from GLOBAL_SIEVE env"
+	docker-compose -f test/global-sieve/docker-compose.test.yml logs server | grep -q "Effective sieve_before:"
+	! docker-compose -f test/global-sieve/docker-compose.test.yml logs server | grep -q "plugin/sieve_before is empty"
+	! docker-compose -f test/global-sieve/docker-compose.test.yml logs server | grep -q "Failed to compile global sieve"
+
+_sut-run-dkim:
 	docker-compose -f test/dkim/docker-compose.test.yml up --exit-code-from sut
+
+sut: nuke _sut-run-basic _sut-run-global-sieve _sut-run-dkim
+
+sut-basic: nuke _sut-run-basic
+
+test-dkim: nuke _sut-run-dkim
+
+test-global-sieve: nuke
+	$(MAKE) _sut-run-global-sieve
