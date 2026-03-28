@@ -53,6 +53,21 @@ echo "[DEBUG ] /etc/postfix/virtual"
 echo "------------------------------"
 /bin/cat -n /etc/postfix/virtual
 
+# Configure STARTTLS if certificates are available
+if [ -f /etc/ssl/certificate.pem ] && [ -f /etc/ssl/key.pem ]; then
+    /usr/sbin/postconf "smtpd_tls_cert_file=/etc/ssl/certificate.pem"
+    /usr/sbin/postconf "smtpd_tls_key_file=/etc/ssl/key.pem"
+    /usr/sbin/postconf "smtpd_tls_security_level=may"
+    /usr/sbin/postconf "smtpd_tls_protocols=!SSLv2,!SSLv3,!TLSv1,!TLSv1.1"
+    /usr/sbin/postconf "smtpd_tls_loglevel=1"
+    /usr/sbin/postconf "smtp_tls_security_level=may"
+    /usr/sbin/postconf "smtp_tls_protocols=!SSLv2,!SSLv3,!TLSv1,!TLSv1.1"
+    /usr/sbin/postconf "smtp_tls_loglevel=1"
+    echo "[NOTICE] STARTTLS configured (inbound + outbound, opportunistic)"
+else
+    echo "[INFO  ] No certificates found; STARTTLS not configured"
+fi
+
 # Process
 /usr/sbin/postmap /etc/postfix/virtual
 ls -la /etc/postfix/virtual*

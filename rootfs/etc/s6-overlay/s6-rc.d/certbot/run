@@ -12,6 +12,7 @@ while true; do
         /bin/cp "/etc/letsencrypt/live/${HOSTNAME}/privkey.pem" /etc/ssl/key.pem
         /bin/cp "/etc/letsencrypt/live/${HOSTNAME}/fullchain.pem" /etc/ssl/certificate.pem
         /bin/s6-svc -r /run/s6/services/30-dovecot
+        /usr/sbin/postfix reload
         MD5SUM=$(md5sum "/etc/letsencrypt/live/${HOSTNAME}/fullchain.pem" | cut -d " " -f1)
         if [ ! -z "${SLACK_URL_FILE}" ]; then
             SLACK_URL=$(/bin/cat "${SLACK_URL_FILE}")

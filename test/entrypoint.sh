@@ -31,6 +31,21 @@ done
 cat /smtp.txt
 nc -i 1 server 25 < /smtp.txt
 
+# ---- Verify STARTTLS ----
+echo "Checking for STARTTLS in EHLO response..."
+printf "EHLO test\r\nQUIT\r\n" | nc -i 1 server 25 | grep -qi "STARTTLS" \
+  || ( echo "FAIL: STARTTLS not advertised in EHLO" && exit 1 )
+echo "PASS: STARTTLS advertised"
+
+echo "Verifying STARTTLS handshake..."
+openssl s_client -starttls smtp \
+  -CAfile /etc/letsencrypt/live/mail.contoso.com/fullchain.pem \
+  -servername mail.contoso.com -connect server:25 \
+  </dev/null 2>&1 \
+  | grep -q "Verify return code: 0" \
+  || ( echo "FAIL: STARTTLS handshake failed" && exit 1 )
+echo "PASS: STARTTLS handshake succeeded"
+
 cat <<EOF > /pop3.txt
 USER catchall
 PASS hunter2
