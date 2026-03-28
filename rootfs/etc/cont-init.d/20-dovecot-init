@@ -97,7 +97,7 @@ if [ -f /etc/dovecot/sieve/global.sieve ]; then
             chmod 644 /etc/dovecot/sieve/global.svbin
             cat <<'EOF' > /etc/dovecot/local.d/10-global-sieve.conf
 plugin {
-    sieve_before = /etc/dovecot/sieve/global.svbin
+    sieve_before = /etc/dovecot/sieve/global.sieve
 }
 EOF
         else

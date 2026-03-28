@@ -1,6 +1,6 @@
 include variables.mk
 
-.PHONY: build all run exec nuke sut sut-basic test-dkim test-global-sieve _sut-run-basic _sut-run-global-sieve _sut-run-dkim
+.PHONY: build all run exec nuke sut test-basic test-dkim test-global-sieve _sut-run-basic _sut-run-global-sieve _sut-run-dkim
 .DEFAULT_GOAL := run
 
 CONTAINER ?= sut
@@ -41,7 +41,7 @@ _sut-run-dkim:
 
 sut: nuke _sut-run-basic _sut-run-global-sieve _sut-run-dkim
 
-sut-basic: nuke _sut-run-basic
+test-basic: nuke _sut-run-basic
 
 test-dkim: nuke _sut-run-dkim
 
