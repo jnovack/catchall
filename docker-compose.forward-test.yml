@@ -1,22 +1,37 @@
 services:
+  mailsink:
+    image: axllent/mailpit:latest
+    hostname: mailsink
+    environment:
+      - "MP_SMTP_BIND_ADDR=0.0.0.0:25"
+      - "MP_HTTP_BIND_ADDR=0.0.0.0:8025"
+
+  bootloader:
+    build:
+      context: ./test
+      dockerfile: Dockerfile.openssl
+    hostname: bootloader
+    environment:
+      - "TZ=America/New_York"
+    entrypoint: >
+      /bin/sh -c "(
+        trap exit TERM;
+        mkdir -p /etc/letsencrypt/live/mail.contoso.com;
+        echo 'hunter2' > /etc/letsencrypt/live/password.txt;
+        openssl req -x509 -sha256 -nodes -newkey rsa:4096 -keyout /etc/letsencrypt/live/mail.contoso.com/privkey.pem -out /etc/letsencrypt/live/mail.contoso.com/fullchain.pem -days 7200 -subj '/CN=self.signed/';
+        openssl genrsa -out /etc/letsencrypt/live/dkim.key 2048;
+        sleep 120 & wait $${!};
+        exit 99;
+      )"
+    volumes:
+      - certificates:/etc/letsencrypt/live/
+
   server:
     build: .
     hostname: mailserver
     depends_on:
       - bootloader
-    ports:
-      - target: 25
-        published: 25
-        protocol: tcp
-        mode: host
-      - target: 993
-        published: 993
-        protocol: tcp
-        mode: host
-      - target: 995
-        published: 995
-        protocol: tcp
-        mode: host
+      - mailsink
     environment:
       HOSTNAME: mail.contoso.com
       DOMAIN: contoso.com
@@ -24,7 +39,10 @@ services:
       ALIASES: contoso.local
       TIMEZONE: America/New_York
       PASSWORD_FILE: /etc/letsencrypt/live/password.txt
-      SLACK_URL_FILE: /run/secrets/slack-webhook
+      FORWARD_TO: "catchall@mailsink"
+      DKIM_DOMAIN: contoso.com
+      DKIM_SELECTOR: default
+      DKIM_PRIVATE_KEY_FILE: /etc/letsencrypt/live/dkim.key
       SIEVE: |
         # NOTE: All dollar signs are escaped twice for YAML encoding. $$
         require [
@@ -32,31 +50,23 @@ services:
           "extracttext", "body", "vnd.dovecot.execute"
         ];
 
-        # 1) Flatten text from text/plain and text/html parts into $${btxt}
         set "btxt" "";
         foreverypart {
-          # Pull human-readable text out of the part (HTML gets de-tagged)
           extracttext :first 1048576 "btxt";
         }
 
-        # 2) Gate on the phrase (case-insensitive) in Subject OR extracted body
         if anyof (
           header :comparator "i;ascii-casemap" :contains "Subject" "verification code",
           string :comparator "i;ascii-casemap" :contains "$${btxt}" "verification code"
         ) {
-          # 3) Capture 6 digits not glued to a 7th digit; allow prefix '>' or whitespace or start.
-          #    This runs on $${btxt}, so capture groups work: $${1}=prefix, $${2}=code, $${3}=suffix
           if string :regex "$${btxt}" "(^|[>[:space:]])([0-9]{6})([^0-9]|$$)" {
             set "vericode" "$${2}";
-            # Pass args as a LIST so $$1 exists in your script
             execute "write-code.sh" ["$${vericode}"];
           }
         }
 
         keep;
-    # Relax Postfix restrictions for SUT testing BEFORE /init starts services:
-    # smtpd_sender_restrictions, smtpd_client_restrictions, and smtpd_helo_restrictions
-    # all perform DNS lookups that fail in the isolated Docker test network.
+    # Relax Postfix restrictions for SUT testing BEFORE /init starts services.
     entrypoint: >
       /bin/sh -c "
         chmod 0777 /shared;
@@ -71,25 +81,6 @@ services:
       - certificates:/etc/letsencrypt/live/
       - shared:/shared
 
-  bootloader:
-    build:
-      context: ./test
-      dockerfile: Dockerfile.openssl
-    hostname: bootloader
-    environment:
-      - "TZ=America/New_York"
-    entrypoint: >
-      /bin/sh -c "(
-        trap exit TERM;
-        mkdir /etc/letsencrypt/live/mail.contoso.com;
-        echo 'hunter2' > /etc/letsencrypt/live/password.txt;
-        openssl req -x509 -sha256 -nodes -newkey rsa:4096 -keyout /etc/letsencrypt/live/mail.contoso.com/privkey.pem -out /etc/letsencrypt/live/mail.contoso.com/fullchain.pem -days 7200 -subj '/CN=self.signed/';
-        sleep 120 & wait $${!};
-        exit 99;
-      )"
-    volumes:
-      - certificates:/etc/letsencrypt/live/
-
   sut:
     build:
       context: ./test
@@ -99,10 +90,12 @@ services:
       - server
     environment:
       - "TZ=America/New_York"
-    entrypoint: /entrypoint.sh
+      - "DKIM_DOMAIN=contoso.com"
+    entrypoint: /entrypoint-forward.sh
     volumes:
       - certificates:/etc/letsencrypt/live/
       - shared:/shared
+      - ./test/entrypoint-forward.sh:/entrypoint-forward.sh
 
 volumes:
   certificates:

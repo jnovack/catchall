@@ -1,0 +1,13 @@
+#!/command/with-contenv sh
+# shellcheck shell=sh
+
+# If DKIM is not configured, 08-dkim-init will not create /run/opendkim/.
+# In that case, idle here to satisfy s6 without starting opendkim.
+# /run/opendkim/ is created by 08-dkim-init only when DKIM is configured.
+if [ ! -d /run/opendkim ]; then
+    echo "[INFO  ] DKIM not configured; opendkim service disabled"
+    exec sleep 86400
+fi
+
+echo "[NOTICE] Starting opendkim"
+exec s6-setuidgid opendkim /usr/sbin/opendkim -f -x /etc/opendkim/opendkim.conf

@@ -1,4 +1,5 @@
 #!/command/with-contenv sh
+# shellcheck shell=sh
 
 while [ ! -f /etc/postfix/virtual ] || [ ! -f /etc/postfix/virtual.db ]; do
     test -f /etc/postfix/virtual || ( /bin/echo "[WARN  ] /etc/postfix/virtual not found" )
@@ -10,6 +11,22 @@ done
 install -Dm644 /etc/resolv.conf /var/spool/postfix/etc/resolv.conf
 install -Dm644 /etc/hosts       /var/spool/postfix/etc/hosts
 install -Dm644 /etc/nsswitch.conf /var/spool/postfix/etc/nsswitch.conf
+
+# If DKIM is configured, wait for the opendkim milter (inet:8891) before starting Postfix.
+# Without this, Postfix would deliver the first messages without DKIM signing.
+if [ -d /run/opendkim ]; then
+    WAIT=0
+    while ! ss -tlnp 2>/dev/null | grep -q ':8891' && [ "${WAIT}" -lt 30 ]; do
+        echo "[INFO  ] postfix waiting for opendkim milter port 8891... (${WAIT}s)"
+        sleep 1
+        WAIT=$((WAIT + 1))
+    done
+    if ss -tlnp 2>/dev/null | grep -q ':8891'; then
+        echo "[NOTICE] opendkim milter ready on port 8891"
+    else
+        echo "[WARN  ] opendkim milter not ready after 30s; starting anyway"
+    fi
+fi
 
 echo "[NOTICE] Starting postfix"
 exec /usr/sbin/postfix start-fg

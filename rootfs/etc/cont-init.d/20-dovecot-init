@@ -1,4 +1,4 @@
-#!/command/with-contenv sh
+#!/command/with-contenv bash
 # shellcheck shell=bash
 
 if [ -f "$PASSWORD_FILE" ]; then
@@ -11,6 +11,12 @@ PASSWD=${PASSWORD:=$(pwgen -scnyr "'\"\\\&\!\%\/" 48 1)}
 SHAPWD=$(printf "%s\n%s\n" "${PASSWD}" "${PASSWD}"| doveadm pw -s SHA512-CRYPT)
 grep -E "${CATCHALL}" /etc/passwd | sed "s#x#$SHAPWD#" > /etc/dovecot/users
 echo "[NOTICE] Password: ${PASSWD}"
+
+# Optionally load processor script from env vars
+# Supported inputs:
+#   - PROCESSOR_SCRIPT: inline processor script
+#   - PROCESSOR_SCRIPT_FILE: path to processor script (e.g., /run/secrets/processor)
+#   - PROCESSOR_SCRIPT_URL: download processor script from URL
 
 # Optionally load a per-user Sieve script for the catchall user from a secret
 # Supported inputs:
@@ -42,6 +48,30 @@ if [ -n "${CATCHALL}" ]; then
     fi
 fi
 
+# Optional email processor: pipe emails to user script (webhook, logging, etc.)
+# Supported inputs:
+#   - PROCESSOR_SCRIPT: inline processor script content
+#   - PROCESSOR_SCRIPT_FILE: path to processor script (e.g., /run/secrets/processor)
+#   - PROCESSOR_SCRIPT_URL: download processor script from URL
+if [ -n "${PROCESSOR_SCRIPT_FILE}" ] && [ -f "${PROCESSOR_SCRIPT_FILE}" ]; then
+    echo "[NOTICE] Installing processor script from ${PROCESSOR_SCRIPT_FILE}"
+    mkdir -p /usr/lib/dovecot/sieve-pipe
+    cp "${PROCESSOR_SCRIPT_FILE}" /usr/lib/dovecot/sieve-pipe/processor.sh
+    chmod 755 /usr/lib/dovecot/sieve-pipe/processor.sh
+elif [ -n "${PROCESSOR_SCRIPT}" ]; then
+    echo "[NOTICE] Installing processor script from PROCESSOR_SCRIPT env"
+    mkdir -p /usr/lib/dovecot/sieve-pipe
+    printf '%s\n' "${PROCESSOR_SCRIPT}" > /usr/lib/dovecot/sieve-pipe/processor.sh
+    chmod 755 /usr/lib/dovecot/sieve-pipe/processor.sh
+elif [ -n "${PROCESSOR_SCRIPT_URL}" ]; then
+    echo "[NOTICE] Downloading processor script from ${PROCESSOR_SCRIPT_URL}"
+    mkdir -p /usr/lib/dovecot/sieve-pipe
+    curl -s "${PROCESSOR_SCRIPT_URL}" -o /usr/lib/dovecot/sieve-pipe/processor.sh
+    chmod 755 /usr/lib/dovecot/sieve-pipe/processor.sh
+else
+    echo "[INFO  ] No processor script configured"
+fi
+
 # Optional: install a global Sieve that runs before user scripts
 # Supported inputs:
 #   - GLOBAL_SIEVE_FILE: path to a sieve script (e.g., /run/secrets/global-sieve)
@@ -50,25 +80,42 @@ if [ -n "${GLOBAL_SIEVE_FILE}" ] && [ -f "${GLOBAL_SIEVE_FILE}" ]; then
     echo "[NOTICE] Installing global sieve from ${GLOBAL_SIEVE_FILE}"
     mkdir -p /etc/dovecot/sieve /etc/dovecot/local.d
     cp "${GLOBAL_SIEVE_FILE}" /etc/dovecot/sieve/global.sieve
-    chmod 644 /etc/dovecot/sieve/global.sieve
-    cat <<'EOF' > /etc/dovecot/local.d/10-global-sieve.conf
-plugin {
-    sieve_before = /etc/dovecot/sieve/global.sieve
-}
-EOF
 elif [ -n "${GLOBAL_SIEVE}" ]; then
     echo "[NOTICE] Installing global sieve from GLOBAL_SIEVE env"
     mkdir -p /etc/dovecot/sieve /etc/dovecot/local.d
     printf "%s\n" "${GLOBAL_SIEVE}" > /etc/dovecot/sieve/global.sieve
+elif [ -f /etc/dovecot/local.d/10-global-sieve.conf ]; then
+    echo "[INFO  ] Removing global sieve override"
+    rm -f /etc/dovecot/local.d/10-global-sieve.conf /etc/dovecot/sieve/global.sieve /etc/dovecot/sieve/global.svbin
+fi
+
+if [ -f /etc/dovecot/sieve/global.sieve ]; then
     chmod 644 /etc/dovecot/sieve/global.sieve
-    cat <<'EOF' > /etc/dovecot/local.d/10-global-sieve.conf
+    rm -f /etc/dovecot/sieve/global.svbin
+    if command -v sievec >/dev/null 2>&1; then
+        if sievec /etc/dovecot/sieve/global.sieve /etc/dovecot/sieve/global.svbin; then
+            chmod 644 /etc/dovecot/sieve/global.svbin
+            cat <<'EOF' > /etc/dovecot/local.d/10-global-sieve.conf
+plugin {
+    sieve_before = /etc/dovecot/sieve/global.svbin
+}
+EOF
+        else
+            echo "[WARN  ] Failed to compile global sieve; using plain script"
+            cat <<'EOF' > /etc/dovecot/local.d/10-global-sieve.conf
 plugin {
     sieve_before = /etc/dovecot/sieve/global.sieve
 }
 EOF
-elif [ -f /etc/dovecot/local.d/10-global-sieve.conf ]; then
-    echo "[INFO  ] Removing global sieve override"
-    rm -f /etc/dovecot/local.d/10-global-sieve.conf /etc/dovecot/sieve/global.sieve
+        fi
+    else
+        echo "[WARN  ] sievec not found; using plain global sieve script"
+        cat <<'EOF' > /etc/dovecot/local.d/10-global-sieve.conf
+plugin {
+    sieve_before = /etc/dovecot/sieve/global.sieve
+}
+EOF
+    fi
 fi
 
 mkdir -p /usr/lib/dovecot/sieve-{execute,pipe}

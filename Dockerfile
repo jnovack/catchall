@@ -42,12 +42,15 @@ RUN set -eux; \
   dovecot-managesieved \
   iproute2 \
   net-tools \
+  opendkim \
+  opendkim-tools \
   postfix \
   pwgen \
   rsyslog \
   tzdata \
   xz-utils; \
   rm -rf /var/lib/apt/lists/*; \
+  rm -rf /run/opendkim; \
   mkdir -p /var/mail; \
   chown mail:mail /var/mail; \
   groupadd -g 65530 catchall; \

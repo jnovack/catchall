@@ -35,3 +35,12 @@ exec:
 
 sut: nuke
 	docker-compose -f docker-compose.test.yml up --exit-code-from sut
+
+nuke-forward:
+	docker-compose -f docker-compose.forward-test.yml down --rmi all --remove-orphans -v -t 1
+
+test-forward: nuke-forward
+	docker-compose -f docker-compose.forward-test.yml up --exit-code-from sut
+
+test-dkim: nuke-forward
+	docker-compose -f docker-compose.forward-test.yml up --exit-code-from sut

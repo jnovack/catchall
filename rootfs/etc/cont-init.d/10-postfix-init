@@ -1,32 +1,54 @@
 #!/command/with-contenv sh
 # shellcheck shell=sh
 
-echo "mynetworks = $(ip a | grep inet | awk '{print $2}' | cut -d'.' -f1-3 | tail -1).0/24" >> /etc/postfix/main.cf
+# Build mynetworks from link-scoped routes (these are proper network CIDRs, not host addresses).
+# Using 'ip route show scope link' avoids the "non-null host address bits" Postfix warning
+# that occurs when passing a host address like 172.18.0.3/16 instead of 172.18.0.0/16.
+CONTAINER_NETS=$(ip -o route show scope link | awk '{print $1}' | grep -v '^127\.' | tr '\n' ' ')
+echo "mynetworks = 127.0.0.0/8 ${CONTAINER_NETS}" >> /etc/postfix/main.cf
 
-echo "[NOTICE] Forwarding all mail to ${CATCHALL:=catchall}"
+# Determine forwarding target(s)
+# When FORWARD_TO is set, mail is delivered to BOTH the external address and the local
+# catchall account. The local copy allows Sieve scripts to run (webhooks, notifications,
+# Mailpit relay, etc.) without interfering with the primary Gmail delivery.
+: "${CATCHALL:=catchall}"
+if [ -n "${FORWARD_TO}" ]; then
+    echo "[NOTICE] Forwarding enabled: ${FORWARD_TO}"
+    echo "[NOTICE] Local copy: ${CATCHALL} (Sieve/scripts)"
+    FORWARD_TARGET="${FORWARD_TO}, ${CATCHALL}"
+else
+    echo "[NOTICE] No forwarding configured; mail stored locally: ${CATCHALL}"
+    FORWARD_TARGET="${CATCHALL}"
+fi
 
 /usr/sbin/postconf "myhostname=${HOSTNAME:=mail.contoso.localdomain}"
 /usr/sbin/postconf "mydomain=${DOMAIN:=contoso.localdomain}"
 /usr/sbin/postconf "virtual_alias_domains=${ALIASES:=fabrikam.localdomain}"
 
+echo "[NOTICE] All mail for ${DOMAIN} → ${FORWARD_TARGET}"
+
 # Create DOMAIN
 /bin/echo "noreply@${DOMAIN}        nobody" > /etc/postfix/virtual
-/bin/echo "@${DOMAIN}        ${CATCHALL}" >> /etc/postfix/virtual
+/bin/echo "@${DOMAIN}        ${FORWARD_TARGET}" >> /etc/postfix/virtual
 
 # BlackHole Email Addresses
 for u in $DEVNULL; do
+    echo "[NOTICE] DEVNULL: ${u}"
     /bin/echo "${u}        nobody" >> /etc/postfix/virtual
 done
 
 # Create all ALIAS DOMAINS
 for d in $ALIASES; do
+    echo "[NOTICE] ALIAS domain: ${d} → ${FORWARD_TARGET}"
     /bin/echo "noreply@${d}        nobody" >> /etc/postfix/virtual
-    /bin/echo "@${d}        ${CATCHALL}" >> /etc/postfix/virtual
+    /bin/echo "@${d}        ${FORWARD_TARGET}" >> /etc/postfix/virtual
 done
 
 echo "nobody:                       /dev/null" > /etc/postfix/aliases
 
 # Log
+ENTRY_COUNT=$(grep -c '' /etc/postfix/virtual)
+echo "[NOTICE] virtual map: ${ENTRY_COUNT} entries"
 echo "[DEBUG ] /etc/postfix/virtual"
 echo "------------------------------"
 /bin/cat -n /etc/postfix/virtual

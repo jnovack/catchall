@@ -8,7 +8,7 @@ inet_interfaces = all
 inet_protocols = ipv4
 mydestination = $myhostname, $mydomain
 unknown_local_recipient_reject_code = 550
-alias_maps = texthash:/etc/postfix/aliases
+alias_maps = hash:/etc/postfix/aliases
 debug_peer_level = 2
 debugger_command =
 	 PATH=/bin:/usr/bin:/usr/local/bin:/usr/X11R6/bin
@@ -21,7 +21,7 @@ html_directory = no
 manpage_directory = /usr/share/man
 sample_directory = /usr/share/doc/postfix/examples
 readme_directory = /usr/share/doc/postfix/README_FILES
-virtual_alias_maps = texthash:/etc/postfix/virtual
+virtual_alias_maps = hash:/etc/postfix/virtual
 smtpd_helo_restrictions =
     permit_mynetworks,
     reject_invalid_helo_hostname,

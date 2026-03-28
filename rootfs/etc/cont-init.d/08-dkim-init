@@ -1,0 +1,92 @@
+#!/command/with-contenv sh
+# shellcheck shell=sh
+
+if [ -z "${DKIM_DOMAIN}" ]; then
+    echo "[INFO  ] DKIM not configured; skipping"
+    exit 0
+fi
+
+echo "[NOTICE] Configuring DKIM for domain: ${DKIM_DOMAIN}"
+
+: "${DKIM_SELECTOR:=default}"
+echo "[NOTICE] DKIM selector: ${DKIM_SELECTOR}"
+
+# Resolve private key — DKIM_PRIVATE_KEY_FILE takes precedence
+if [ -n "${DKIM_PRIVATE_KEY_FILE}" ] && [ -f "${DKIM_PRIVATE_KEY_FILE}" ]; then
+    echo "[NOTICE] Loading private key from ${DKIM_PRIVATE_KEY_FILE}"
+    mkdir -p /etc/opendkim/keys
+    cp "${DKIM_PRIVATE_KEY_FILE}" "/etc/opendkim/keys/${DKIM_SELECTOR}.key"
+    chmod 600 "/etc/opendkim/keys/${DKIM_SELECTOR}.key"
+    chown opendkim:opendkim "/etc/opendkim/keys/${DKIM_SELECTOR}.key"
+elif [ -n "${DKIM_PRIVATE_KEY}" ]; then
+    echo "[NOTICE] Loading private key from DKIM_PRIVATE_KEY env"
+    mkdir -p /etc/opendkim/keys
+    printf '%s\n' "${DKIM_PRIVATE_KEY}" > "/etc/opendkim/keys/${DKIM_SELECTOR}.key"
+    chmod 600 "/etc/opendkim/keys/${DKIM_SELECTOR}.key"
+    chown opendkim:opendkim "/etc/opendkim/keys/${DKIM_SELECTOR}.key"
+else
+    echo "[ERROR ] No DKIM private key provided (set DKIM_PRIVATE_KEY_FILE or DKIM_PRIVATE_KEY)"
+    exit 1
+fi
+
+# Log key fingerprint (safe — does not expose private key)
+_FINGERPRINT=$(openssl rsa -in "/etc/opendkim/keys/${DKIM_SELECTOR}.key" -noout -text 2>/dev/null \
+    | grep 'Key-Size\|Private-Key' | head -1 | tr -d ' ')
+_BITS=$(openssl rsa -in "/etc/opendkim/keys/${DKIM_SELECTOR}.key" -noout -text 2>/dev/null \
+    | grep -oE 'RSA Private-Key: \([0-9]+ bit' | grep -oE '[0-9]+' || echo "?")
+echo "[NOTICE] Private key: ${_BITS} bit RSA"
+
+# Write keytable and signingtable
+printf '%s._domainkey.%s %s:%s:/etc/opendkim/keys/%s.key\n' \
+    "${DKIM_SELECTOR}" "${DKIM_DOMAIN}" "${DKIM_DOMAIN}" "${DKIM_SELECTOR}" "${DKIM_SELECTOR}" \
+    > /etc/opendkim/keytable
+echo "[NOTICE] Key table written: /etc/opendkim/keytable"
+
+# Wildcard: sign ALL outgoing mail with the server's DKIM key.
+# This is correct for a mail forwarder — external senders' From domains
+# are not in the keytable, so a domain-specific pattern would skip them.
+printf '* %s._domainkey.%s\n' "${DKIM_SELECTOR}" "${DKIM_DOMAIN}" \
+    > /etc/opendkim/signingtable
+echo "[NOTICE] Signing table written: /etc/opendkim/signingtable"
+
+chown -R opendkim:opendkim /etc/opendkim
+chmod 750 /etc/opendkim
+chmod 640 /etc/opendkim/keytable /etc/opendkim/signingtable
+
+# Create socket directory
+mkdir -p /run/opendkim
+chown opendkim:opendkim /run/opendkim
+chmod 750 /run/opendkim
+echo "[NOTICE] Socket directory created: /run/opendkim"
+
+# Add milter config to Postfix (conditional — only when DKIM is active)
+/usr/sbin/postconf "milter_protocol=6"
+/usr/sbin/postconf "milter_default_action=accept"
+/usr/sbin/postconf "smtpd_milters=inet:localhost:8891"
+/usr/sbin/postconf "non_smtpd_milters=inet:localhost:8891"
+echo "[NOTICE] Milter configuration added to Postfix"
+
+# DNS validation — query Cloudflare DoH to verify the public key is in DNS
+_DKIM_PUBKEY=$(openssl rsa -in "/etc/opendkim/keys/${DKIM_SELECTOR}.key" -pubout 2>/dev/null \
+    | grep -v '^-' | tr -d '\n\r ')
+_DNS_RESP=$(curl -sf --resolve "cloudflare-dns.com:443:1.1.1.1" \
+    "https://cloudflare-dns.com/dns-query?name=${DKIM_SELECTOR}._domainkey.${DKIM_DOMAIN}&type=TXT" \
+    -H "accept: application/dns-json" 2>/dev/null || true)
+
+if [ -z "${_DNS_RESP}" ]; then
+    echo "[WARN  ] Could not reach DNS resolver; skipping DKIM record validation"
+else
+    _DNS_KEY=$(printf '%s' "${_DNS_RESP}" | grep -oE 'p=[A-Za-z0-9+/=]+' | head -1 | cut -c3-)
+    if [ -z "${_DNS_KEY}" ]; then
+        echo "[WARN  ] DKIM TXT record not found: ${DKIM_SELECTOR}._domainkey.${DKIM_DOMAIN}"
+        echo "[WARN  ] Publish DNS record: v=DKIM1; k=rsa; p=${_DKIM_PUBKEY}"
+    elif [ "${_DKIM_PUBKEY}" = "${_DNS_KEY}" ]; then
+        echo "[NOTICE] DKIM DNS record verified: key matches"
+    else
+        echo "[WARN  ] DKIM DNS key mismatch — DNS record and private key do not agree"
+        echo "[WARN  ] DNS has:     $(printf '%s' "${_DNS_KEY}" | cut -c1-48)..."
+        echo "[WARN  ] Key expects: $(printf '%s' "${_DKIM_PUBKEY}" | cut -c1-48)..."
+    fi
+fi
+
+echo "[NOTICE] DKIM configuration complete"
