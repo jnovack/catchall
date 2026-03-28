@@ -16,6 +16,7 @@ build:
 
 nuke:
 	docker-compose -f docker-compose.test.yml down --rmi all --remove-orphans -v -t 1
+	docker-compose -f docker-compose.forward-test.yml down --rmi all --remove-orphans -v -t 1
 
 clean:
 	docker-compose -f docker-compose.test.yml down --remove-orphans -v
@@ -36,11 +37,8 @@ exec:
 sut: nuke
 	docker-compose -f docker-compose.test.yml up --exit-code-from sut
 
-nuke-forward:
-	docker-compose -f docker-compose.forward-test.yml down --rmi all --remove-orphans -v -t 1
-
-test-forward: nuke-forward
+test-forward: nuke
 	docker-compose -f docker-compose.forward-test.yml up --exit-code-from sut
 
-test-dkim: nuke-forward
+test-dkim: nuke
 	docker-compose -f docker-compose.forward-test.yml up --exit-code-from sut
