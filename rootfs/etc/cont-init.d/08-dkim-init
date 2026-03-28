@@ -33,7 +33,7 @@ fi
 _FINGERPRINT=$(openssl rsa -in "/etc/opendkim/keys/${DKIM_SELECTOR}.key" -noout -text 2>/dev/null \
     | grep 'Key-Size\|Private-Key' | head -1 | tr -d ' ')
 _BITS=$(openssl rsa -in "/etc/opendkim/keys/${DKIM_SELECTOR}.key" -noout -text 2>/dev/null \
-    | grep -oE 'RSA Private-Key: \([0-9]+ bit' | grep -oE '[0-9]+' || echo "?")
+    | grep -oE '(RSA )?Private-Key: \([0-9]+ bit' | grep -oE '[0-9]+' || echo "?")
 echo "[NOTICE] Private key: ${_BITS} bit RSA"
 
 # Write keytable and signingtable
