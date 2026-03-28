@@ -1,5 +1,5 @@
-#!/command/with-contenv sh
-# shellcheck shell=sh
+#!/command/with-contenv bash
+# shellcheck shell=bash
 
 # Build mynetworks from link-scoped routes (these are proper network CIDRs, not host addresses).
 # Using 'ip route show scope link' avoids the "non-null host address bits" Postfix warning
