@@ -116,6 +116,15 @@ plugin {
 }
 EOF
     fi
+
+    if command -v doveconf >/dev/null 2>&1; then
+        SIEVE_BEFORE=$(doveconf -h plugin/sieve_before 2>/dev/null || true)
+        if [ -n "${SIEVE_BEFORE}" ]; then
+            echo "[NOTICE] Effective sieve_before: ${SIEVE_BEFORE}"
+        else
+            echo "[WARN  ] Global sieve configured but plugin/sieve_before is empty"
+        fi
+    fi
 fi
 
 mkdir -p /usr/lib/dovecot/sieve-{execute,pipe}
