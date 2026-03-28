@@ -3,38 +3,41 @@
 [![Docker](https://badgen.net/badge/jnovack/catchall/blue?icon=docker)](https://hub.docker.com/r/jnovack/catchall)
 [![Github](https://badgen.net/badge/jnovack/catchall/purple?icon=github)](https://github.com/jnovack/catchall)
 
-**catchall** is a simple all-in-one mail server for catching all email and
-funnelling it to a single catchall address which is available for pickup.
+**catchall** is a ~~simple~~ all-in-one mail server for catching all email and
+funnelling it to a single catchall address which is available for pickup for forwarding.
 
 ## Overview
 
-Use as your own personal "mailinator" or simply because you want tons of
-throw-away email addresses when throw-away domains are not permitted.
+Use as your own personal "mailinator" — receive mail at any address on your domain and
+forward it automatically to Gmail (or another inbox). Create as many throw-away addresses
+as you need; kill specific ones when they get sold to marketers by adding them to `DEVNULL`.
 
-This is *not* another SquirrelMail or Roundcube replacement.  I wanted minimal
-setup and container portability for a single user to receive email at multiple
-throw-away addresses for throw-away services.
+This is *not* a SquirrelMail or Roundcube replacement. It is designed for minimal setup
+and single-user operation.
 
 ## Features
 
-- All-in-One SMTP server (receiving) and POP3/IMAP server (retrieving)
-- Docker Secrets compatibility
-- Provides TLS services by leveraging Let's Encrypt as a sidecar
-- Automagic restart when new certificates are found
+- **Catch-all SMTP Receiver** (port 25): Accepts all mail for your domain(s)
+- **STARTTLS**: Opportunistic TLS on port 25 for inbound and outbound SMTP
+- **Mail Forwarding**: Automatically relays received mail to your external account (e.g. Gmail)
+- **DKIM signing** (optional): Signs all outgoing mail with your domain's private key
+- **Per-address kill-switch**: Add burned addresses to `DEVNULL` to drop their mail silently
+- **Multi-domain support**: Accept mail for multiple domains via `ALIASES`
+- **Sieve filtering**: Optional per-user and global email filter scripts
+- **Local mailbox** (optional): IMAP/POP3 via Dovecot if you prefer local storage over forwarding
+- **Docker Secrets compatibility**
+- **Let's Encrypt TLS** with automatic certificate reload (Dovecot + Postfix)
 
-### Not Supported (Yet)
+### Not Supported / Out of Scope
 
-- HTTP UI / API
+#### HTTP UI / API
 
-My first goal was to get emails available for pickup and import by other
-services (Gmail, specifically).  Providing a web-based UI or API means
-additional processes (which there already are a lot), and databases to keep
-consistent with the mail spool on disk.
+If you would like, you can easily add [axllent/mailpit](https://mailpit.axllent.org/) to the stack,
+see [docs/FORWARDER.md](docs/FORWARDER.md) for details.
 
-- Sending email
+#### Sending Email
 
-This was just designed as a "mailinator"-clone, so I have not implemented
-sending emails.
+This is a receive-and-forward container, not a user-facing MTA.
 
 ## Environment Variables
 
@@ -45,14 +48,22 @@ Space-separated list of alias domains to also receive mail.
 ```sh
 ALIASES="contoso.home fabrikam.com"
 ```
+
 ### CATCHALL
 
-The name of your catchall account.  All emails (not sent to `/dev/null`) will
-be aggregated and forwarded to this account.
+Local account name for receiving emails (stored in Dovecot). When forwarding is not configured, mail is delivered to this local account.
 
 ```sh
 # default
 CATCHALL=catchall
+```
+
+### FORWARD_TO
+
+**Optional:** Gmail address (or other external address) to forward all received emails. If not set, emails are delivered to the local `CATCHALL` account instead.
+
+```sh
+FORWARD_TO="your-email@gmail.com"
 ```
 
 ### DEVNULL
@@ -73,7 +84,10 @@ DOMAIN="contoso.com"
 
 ### HOSTNAME
 
-Hostname to present.  This MUST match the Common Name on your SSL certificate.
+Hostname to present.
+
+> [!WARNING]
+> This **MUST** match the Common Name on your SSL certificate.
 
 ```sh
 HOSTNAME="mail.contoso.com"
@@ -99,7 +113,7 @@ When certbot successfully renews a certificate, you can be sent a slack
 notification as confirmation.
 
 ```sh
-SLACK_URL_FILE="https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
+SLACK_URL_FILE="https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
 ```
 
 ### STARTUP_DELAY
@@ -120,3 +134,89 @@ STARTUP_DELAY=5
 # default
 TIMEZONE="Etc/UTC"
 ```
+
+### DKIM_DOMAIN
+
+Primary domain for DKIM signing. When set, all outgoing mail is signed with your domain's
+private key via OpenDKIM. Requires `DKIM_PRIVATE_KEY` or `DKIM_PRIVATE_KEY_FILE`.
+
+```sh
+DKIM_DOMAIN="contoso.com"
+```
+
+### DKIM_SELECTOR
+
+DKIM selector name. Must match the selector in your DNS TXT record (`<selector>._domainkey.<domain>`).
+
+```sh
+# default
+DKIM_SELECTOR=default
+```
+
+### DKIM_PRIVATE_KEY (or DKIM_PRIVATE_KEY_FILE)
+
+The RSA private key for DKIM signing. Pass inline or via Docker Secret.
+
+```sh
+DKIM_PRIVATE_KEY_FILE="/run/secrets/dkim-private-key"
+```
+
+See [docs/DKIM.md](docs/DKIM.md) for key generation and DNS setup instructions.
+
+### SIEVE (or SIEVE_FILE)
+
+Optional per-user Sieve script for the catchall account. Runs at delivery time inside
+Dovecot and can forward, discard, file to folders, or pipe to external scripts.
+
+```sh
+# Inline Sieve script
+# send it to the Archive folder in Dovecot
+SIEVE="require [\"fileinto\"]; fileinto \"Archive\";"
+# or to send it to another server (e.g. like Mailpit)
+SIEVE="redirect :copy \"catchall@mailpit\";"
+# or drop it.
+SIEVE="discard;"
+
+# From Docker Secret
+SIEVE_FILE="/run/secrets/catchall-sieve"
+```
+
+### GLOBAL_SIEVE (or GLOBAL_SIEVE_FILE)
+
+Optional global Sieve script that runs **before** the per-user script for all delivered
+messages. Useful for applying organization-wide filtering rules.
+
+```sh
+# Inline global Sieve
+GLOBAL_SIEVE="if header :contains \"X-Spam-Flag\" \"YES\" { discard; stop; }"
+
+# From Docker Secret
+GLOBAL_SIEVE_FILE="/run/secrets/global-sieve"
+```
+
+### PROCESSOR_SCRIPT (or PROCESSOR_SCRIPT_FILE or PROCESSOR_SCRIPT_URL)
+
+Optional email processing script. When set, a copy of each incoming email is piped to your script for custom processing (webhooks, logging, notifications, etc.). The Sieve processor uses one of three input methods:
+
+1. **PROCESSOR_SCRIPT**: Inline script (shell commands or shebang)
+2. **PROCESSOR_SCRIPT_FILE**: Path to script file (Docker Secret)
+3. **PROCESSOR_SCRIPT_URL**: Download script from URL at startup
+
+> [!CAUTION]
+> `PROCESSOR_SCRIPT_URL` executes remote code at startup and should only be used with trusted, pinned sources.
+
+Examples:
+
+```sh
+# Inline webhook notification
+PROCESSOR_SCRIPT="#!/bin/sh
+curl -X POST https://webhooks.example.com/mail -d @-"
+
+# From Docker Secret
+PROCESSOR_SCRIPT_FILE="/run/secrets/mail-processor.sh"
+
+# Download at startup
+PROCESSOR_SCRIPT_URL="https://example.com/processor.sh"
+```
+
+For detailed examples (logging, JSON output, Gmail integration), see [docs/EXAMPLE.md](docs/EXAMPLE.md).

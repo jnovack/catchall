@@ -18,6 +18,112 @@ someone to utilize these ideas in a future project.
 > document are to be interpreted as described in BCP 14,
 > [RFC2119](https://tools.ietf.org/html/rfc2119).
 
+## Test suites
+
+The project has two end-to-end test suites, both using Docker Compose with `--exit-code-from sut`.
+
+### Main suite (`make sut`)
+
+Validates local-only mode: no forwarding, no DKIM.
+
+```bash
+make sut
+# or directly:
+docker-compose -f docker-compose.test.yml up --exit-code-from sut
+```
+
+Checks:
+
+1. SMTP delivery → Postfix → Dovecot LMTP → Sieve → POP3 retrieval
+2. Message headers and body content
+3. Sieve script execution (verification code capture)
+4. STARTTLS advertised in EHLO and TLS handshake verified
+
+### Forwarding suite (`make test-forward`)
+
+Validates forwarding + DKIM mode: `FORWARD_TO`, `DKIM_DOMAIN`, and all related features.
+
+```bash
+make test-forward
+# or directly:
+docker-compose -f docker-compose.forward-test.yml up --exit-code-from sut
+```
+
+Checks:
+
+1. Mailpit (the "external" destination) received the forwarded message
+2. Verification code present in the Mailpit copy
+3. Local Dovecot copy also received (dual delivery)
+4. Sieve script executed on the local copy
+5. DEVNULL address silently dropped
+6. DKIM-Signature header present in the forwarded message
+7. STARTTLS advertised in EHLO and TLS handshake verified
+
+### Cleanup targets
+
+```bash
+make nuke           # tear down all suite containers and volumes
+```
+
+## Local quick testing
+
+For fast iteration:
+
+```bash
+docker build -t catchall:test .
+docker run -it catchall:test /bin/sh
+```
+
+Run a container with feature flags for targeted validation:
+
+```bash
+docker run -it \
+  -e FEATURE=value \
+  -e DOMAIN=test.local \
+  catchall:test
+```
+
+Inspect logs for feature behavior:
+
+```bash
+docker logs CONTAINER | grep FEATURE
+```
+
+## Feature testing workflow
+
+For new optional features, cover three paths:
+
+1. Disabled path — run the normal suite without feature env vars; existing behavior must remain unchanged.
+2. Enabled path — run with the feature configured and verify the expected mail flow behavior.
+3. Error path — run with invalid or missing supporting config and confirm the feature skips safely without crashing the container.
+
+## Validation guidance
+
+- Start with the smallest relevant verification step.
+- Use the full SUT suite when a change touches mail flow, startup sequencing, or cross-service behavior.
+- If no automated test exists, document a lightweight manual verification path.
+- Never claim a test passed unless it was actually run.
+
+## Useful commands
+
+Run the full suite and keep the SUT attached:
+
+```bash
+docker-compose -f docker-compose.test.yml up --exit-code-from sut --attach sut
+```
+
+Inspect server logs during testing:
+
+```bash
+docker-compose -f docker-compose.test.yml logs -f server
+```
+
+Tear down the test stack:
+
+```bash
+docker-compose -f docker-compose.test.yml down
+```
+
 ## Services
 
 Docker Hub only starts the `sut` service (stands for "System Under Test") and
