@@ -1,6 +1,8 @@
 services:
   server:
-    build: .
+    build:
+      context: ../../
+      dockerfile: build/package/Dockerfile
     hostname: mailserver
     depends_on:
       - bootloader
@@ -73,7 +75,7 @@ services:
 
   bootloader:
     build:
-      context: ./test
+      context: ./
       dockerfile: Dockerfile.openssl
     hostname: bootloader
     environment:
@@ -92,7 +94,7 @@ services:
 
   sut:
     build:
-      context: ./test
+      context: ./
       dockerfile: Dockerfile.openssl
     hostname: sut
     depends_on:

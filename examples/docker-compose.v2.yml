@@ -1,8 +1,9 @@
+# for jnovack/catchall:2
 version: "3.6"
 
 services:
   server:
-    image: jnovack/catchall:latest
+    image: jnovack/catchall:2
     ports:
       - target: 25
         published: 25

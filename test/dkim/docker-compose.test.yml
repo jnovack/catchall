@@ -8,7 +8,7 @@ services:
 
   bootloader:
     build:
-      context: ./test
+      context: ./
       dockerfile: Dockerfile.openssl
     hostname: bootloader
     environment:
@@ -27,7 +27,9 @@ services:
       - certificates:/etc/letsencrypt/live/
 
   server:
-    build: .
+    build:
+      context: ../../
+      dockerfile: build/package/Dockerfile
     hostname: mailserver
     depends_on:
       - bootloader
@@ -83,7 +85,7 @@ services:
 
   sut:
     build:
-      context: ./test
+      context: .
       dockerfile: Dockerfile.openssl
     hostname: sut
     depends_on:
@@ -91,11 +93,10 @@ services:
     environment:
       - "TZ=America/New_York"
       - "DKIM_DOMAIN=contoso.com"
-    entrypoint: /entrypoint-forward.sh
+    entrypoint: /entrypoint.sh
     volumes:
       - certificates:/etc/letsencrypt/live/
       - shared:/shared
-      - ./test/entrypoint-forward.sh:/entrypoint-forward.sh
 
 volumes:
   certificates:

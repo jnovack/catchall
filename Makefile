@@ -15,17 +15,8 @@ build:
 	docker buildx build --platform linux/amd64,linux/arm64 . -t jnovack/catchall:latest
 
 nuke:
-	docker-compose -f docker-compose.test.yml down --rmi all --remove-orphans -v -t 1
-	docker-compose -f docker-compose.forward-test.yml down --rmi all --remove-orphans -v -t 1
-
-clean:
-	docker-compose -f docker-compose.test.yml down --remove-orphans -v
-
-down:
-	docker-compose -f docker-compose.test.yml down
-
-up:
-	docker-compose -f docker-compose.test.yml up
+	docker-compose -f test/basic/docker-compose.test.yml down --rmi all --remove-orphans -v -t 1
+	docker-compose -f test/dkim/docker-compose.test.yml down --rmi all --remove-orphans -v -t 1
 
 debug:
 	docker start catchall-server-1
@@ -35,10 +26,7 @@ exec:
 	docker run -it --rm --network=catchall_default --entrypoint=/bin/sh debug
 
 sut: nuke
-	docker-compose -f docker-compose.test.yml up --exit-code-from sut
-
-test-forward: nuke
-	docker-compose -f docker-compose.forward-test.yml up --exit-code-from sut
+	docker-compose -f test/basic/docker-compose.test.yml up --exit-code-from sut
 
 test-dkim: nuke
-	docker-compose -f docker-compose.forward-test.yml up --exit-code-from sut
+	docker-compose -f test/dkim/docker-compose.test.yml up --exit-code-from sut
