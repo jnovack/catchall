@@ -6,6 +6,9 @@
 **catchall** is a ~~simple~~ all-in-one mail server for catching all email and
 funnelling it to a single catchall address which is available for pickup for forwarding.
 
+> [!IMPORTANT]
+> Version 3 is a breaking change. Read through [docs/UPGRADING.md](docs/UPGRADING.md) before deploying.
+
 ## Overview
 
 Use as your own personal "mailinator" — receive mail at any address on your domain and
@@ -40,6 +43,8 @@ see [docs/FORWARDER.md](docs/FORWARDER.md) for details.
 This is a receive-and-forward container, not a user-facing MTA.
 
 ## Environment Variables
+
+For detailed examples (logging, JSON output, Gmail integration), see [docs/EXAMPLE.md](docs/EXAMPLE.md).
 
 ### ALIASES
 
@@ -218,5 +223,3 @@ PROCESSOR_SCRIPT_FILE="/run/secrets/mail-processor.sh"
 # Download at startup
 PROCESSOR_SCRIPT_URL="https://example.com/processor.sh"
 ```
-
-For detailed examples (logging, JSON output, Gmail integration), see [docs/EXAMPLE.md](docs/EXAMPLE.md).
