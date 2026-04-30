@@ -11,7 +11,7 @@ Internet SMTP (port 25)
          ↓
    Virtual Aliases (route mail)
       ↙         │    ↖
-   /dev/null  Gmail  Dovecot/Sieve
+   SMTP 550   Gmail  Dovecot/Sieve
               (via   (processor)
                relay)  ├─ Pipe email to script
                        └─ Discard message
@@ -34,7 +34,7 @@ Internet SMTP (port 25)
 | `ALIASES` | Additional domains to receive mail | `example.local example.net` |
 | `CATCHALL` | Local account name (Dovecot user) | `catchall` |
 | `FORWARD_TO` | Optional Gmail address to forward to | `your-email@gmail.com` |
-| `DEVNULL` | Addresses to discard (spam) | `sales@example.com noreply@example.com` |
+| `DEVNULL` | Addresses to reject during SMTP | `sales@example.com noreply@example.com` |
 | `PASSWORD` | Dovecot user password | `your-secure-password` |
 | `TIMEZONE` | Timezone for logs | `America/New_York` |
 
@@ -276,9 +276,9 @@ Update the Postfix init script to generate virtual aliases with internal routing
 **In `/etc/postfix/virtual`:**
 
 ```text
-sales@example.com              /dev/null
-marketing@example.com          /dev/null
-noreply@example.com            /dev/null
+sales@example.com              550 5.1.1 Recipient address rejected
+marketing@example.com          550 5.1.1 Recipient address rejected
+noreply@example.com            550 5.1.1 Recipient address rejected
 @example.com                   your-email@gmail.com, processor@internal.local
 ```
 
@@ -337,7 +337,7 @@ docker exec catchall tail -50 /var/log/syslog | grep processor
 ### Test 4: Verify DEVNULL Filtering
 
 ```bash
-# Send to a blackholed address
+# Send to a blackholed address; Postfix should reject it at RCPT time
 (
   echo "EHLO test.example.com"
   echo "MAIL FROM:<attacker@external.com>"
@@ -350,6 +350,7 @@ docker exec catchall tail -50 /var/log/syslog | grep processor
   echo "QUIT"
 ) | nc mail.example.com 25
 
+# Verify the SMTP transcript includes a 550 reject
 # Verify it was NOT forwarded to Gmail
 docker logs catchall | grep -i sales
 ```

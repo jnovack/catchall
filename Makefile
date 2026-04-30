@@ -1,6 +1,6 @@
 include variables.mk
 
-.PHONY: build all run exec nuke sut test-basic test-dkim test-global-sieve _sut-run-basic _sut-run-global-sieve _sut-run-dkim
+.PHONY: build all run exec nuke sut test-basic test-dkim test-global-sieve _sut-run-basic _sut-run-global-sieve _sut-run-dkim test-unit _sut-run-unit
 .DEFAULT_GOAL := run
 
 CONTAINER ?= sut
@@ -18,6 +18,7 @@ nuke:
 	docker-compose -f test/basic/docker-compose.test.yml down --rmi all --remove-orphans -v -t 1
 	docker-compose -f test/dkim/docker-compose.test.yml down --rmi all --remove-orphans -v -t 1
 	docker-compose -f test/global-sieve/docker-compose.test.yml down --rmi all --remove-orphans -v -t 1
+	docker rmi -f catchall-unit-test 2>/dev/null || true
 
 debug:
 	docker start catchall-server-1
@@ -47,3 +48,10 @@ test-dkim: nuke _sut-run-dkim
 
 test-global-sieve: nuke
 	$(MAKE) _sut-run-global-sieve
+
+_sut-run-unit:
+	docker build -f test/unit/Dockerfile -t catchall-unit-test .
+	docker run --rm catchall-unit-test
+
+test-unit: _sut-run-unit
+

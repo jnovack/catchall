@@ -27,24 +27,24 @@ fi
 
 echo "[NOTICE] All mail for ${DOMAIN} → ${FORWARD_TARGET}"
 
+REJECT_ACTION="550 5.1.1 Recipient address rejected"
+
 # Create DOMAIN
-/bin/echo "noreply@${DOMAIN}        nobody" > /etc/postfix/virtual
+/bin/echo "noreply@${DOMAIN}        ${REJECT_ACTION}" > /etc/postfix/recipient_access
 /bin/echo "@${DOMAIN}        ${FORWARD_TARGET}" >> /etc/postfix/virtual
 
 # BlackHole Email Addresses
 for u in $DEVNULL; do
     echo "[NOTICE] DEVNULL: ${u}"
-    /bin/echo "${u}        nobody" >> /etc/postfix/virtual
+    /bin/echo "${u}        ${REJECT_ACTION}" >> /etc/postfix/recipient_access
 done
 
 # Create all ALIAS DOMAINS
 for d in $ALIASES; do
     echo "[NOTICE] ALIAS domain: ${d} → ${FORWARD_TARGET}"
-    /bin/echo "noreply@${d}        nobody" >> /etc/postfix/virtual
+    /bin/echo "noreply@${d}        ${REJECT_ACTION}" >> /etc/postfix/recipient_access
     /bin/echo "@${d}        ${FORWARD_TARGET}" >> /etc/postfix/virtual
 done
-
-echo "nobody:                       /dev/null" > /etc/postfix/aliases
 
 # Log
 ENTRY_COUNT=$(grep -c '' /etc/postfix/virtual)
@@ -52,6 +52,13 @@ echo "[NOTICE] virtual map: ${ENTRY_COUNT} entries"
 echo "[DEBUG ] /etc/postfix/virtual"
 echo "------------------------------"
 /bin/cat -n /etc/postfix/virtual
+if [ -f /etc/postfix/recipient_access ]; then
+    REJECT_COUNT=$(grep -c '' /etc/postfix/recipient_access)
+    echo "[NOTICE] recipient_access map: ${REJECT_COUNT} entries"
+    echo "[DEBUG ] /etc/postfix/recipient_access"
+    echo "---------------------------------------"
+    /bin/cat -n /etc/postfix/recipient_access
+fi
 
 # Configure STARTTLS if certificates are available
 if [ -f /etc/ssl/certificate.pem ] && [ -f /etc/ssl/key.pem ]; then
@@ -71,5 +78,7 @@ fi
 # Process
 /usr/sbin/postmap /etc/postfix/virtual
 ls -la /etc/postfix/virtual*
-/usr/sbin/postalias /etc/postfix/aliases
-ls -la /etc/postfix/aliases*
+if [ -f /etc/postfix/recipient_access ]; then
+    /usr/sbin/postmap /etc/postfix/recipient_access
+    ls -la /etc/postfix/recipient_access*
+fi

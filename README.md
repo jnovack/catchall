@@ -24,7 +24,7 @@ and single-user operation.
 - **STARTTLS**: Opportunistic TLS on port 25 for inbound and outbound SMTP
 - **Mail Forwarding**: Automatically relays received mail to your external account (e.g. Gmail)
 - **DKIM signing** (optional): Signs all outgoing mail with your domain's private key
-- **Per-address kill-switch**: Add burned addresses to `DEVNULL` to drop their mail silently
+- **Per-address kill-switch**: Add burned addresses to `DEVNULL` to reject them during SMTP
 - **Multi-domain support**: Accept mail for multiple domains via `ALIASES`
 - **Sieve filtering**: Optional per-user and global email filter scripts
 - **Local mailbox** (optional): IMAP/POP3 via Dovecot if you prefer local storage over forwarding
@@ -73,7 +73,7 @@ FORWARD_TO="your-email@gmail.com"
 
 ### DEVNULL
 
-Space-separated list of email addresses to send to `/dev/null`.
+Space-separated list of email addresses to reject during SMTP with a permanent `550 5.1.1`.
 
 ```sh
 DEVNULL="sales@contoso.com noreply@contoso.com"

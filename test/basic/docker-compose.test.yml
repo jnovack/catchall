@@ -65,7 +65,7 @@ services:
         /usr/sbin/postconf -X smtpd_sender_restrictions;
         /usr/sbin/postconf -X smtpd_client_restrictions;
         /usr/sbin/postconf -X smtpd_helo_restrictions;
-        /usr/sbin/postconf -X smtpd_recipient_restrictions;
+        /usr/sbin/postconf 'smtpd_recipient_restrictions=check_recipient_access hash:/etc/postfix/recipient_access, permit_mynetworks, reject_unauth_destination';
         echo 'smtpd_forbid_unauth_pipelining = no' >> /etc/postfix/main.cf;
         exec /init
       "

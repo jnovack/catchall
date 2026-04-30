@@ -55,7 +55,7 @@ Checks:
 2. Verification code present in the Mailpit copy
 3. Local Dovecot copy also received (dual delivery)
 4. Sieve script executed on the local copy
-5. DEVNULL address silently dropped
+5. DEVNULL address rejected during SMTP and not delivered
 6. DKIM-Signature header present in the forwarded message
 7. STARTTLS advertised in EHLO and TLS handshake verified
 

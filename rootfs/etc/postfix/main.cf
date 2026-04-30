@@ -29,6 +29,7 @@ smtpd_helo_restrictions =
     reject_unknown_helo_hostname
 smtpd_sender_restrictions = reject_unknown_sender_domain
 smtpd_recipient_restrictions =
+    check_recipient_access hash:/etc/postfix/recipient_access,
     reject_unauth_destination,
     reject_rbl_client bl.spamcop.net,
     reject_rbl_client dnsbl.sorbs.net

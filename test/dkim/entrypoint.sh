@@ -119,7 +119,7 @@ grep -Fx "$CODE" /shared/code.txt \
   || ( echo "FAIL: Sieve did not capture the expected verification code" && exit 1 )
 echo "PASS: Sieve executed write-code.sh and captured the verification code"
 
-# ---- Verify DEVNULL address is dropped ----
+# ---- Verify DEVNULL address is rejected at RCPT ----
 BEFORE_COUNT=$(curl -sf http://mailsink:8025/api/v1/messages | grep -oE '"total":[0-9]+' | cut -d: -f2 || echo "0")
 echo "Mailpit count before DEVNULL test: ${BEFORE_COUNT}"
 
@@ -136,14 +136,19 @@ quit
 EOF
 
 echo "Sending to DEVNULL address..."
-nc -i 1 server 25 < /devnull.txt
+DEVNULL_SMTP_OUTPUT=$(nc -i 1 server 25 < /devnull.txt)
+printf '%s\n' "${DEVNULL_SMTP_OUTPUT}"
+printf '%s\n' "${DEVNULL_SMTP_OUTPUT}" | grep -q "550 5.1.1" \
+  || ( echo "FAIL: DEVNULL address was not rejected during SMTP" && exit 1 )
+printf '%s\n' "${DEVNULL_SMTP_OUTPUT}" | grep -q "Recipient address rejected" \
+  || ( echo "FAIL: DEVNULL address was not rejected during SMTP" && exit 1 )
 sleep 5 & wait $!
 
 AFTER_COUNT=$(curl -sf http://mailsink:8025/api/v1/messages | grep -oE '"total":[0-9]+' | cut -d: -f2 || echo "0")
 echo "Mailpit count after DEVNULL test: ${AFTER_COUNT}"
 [ "${BEFORE_COUNT}" -eq "${AFTER_COUNT}" ] \
   || ( echo "FAIL: DEVNULL address delivered to Mailpit (count changed ${BEFORE_COUNT} → ${AFTER_COUNT})" && exit 1 )
-echo "PASS: DEVNULL address correctly dropped"
+echo "PASS: DEVNULL address rejected and not delivered"
 
 # ---- DKIM header check (when DKIM_DOMAIN is configured) ----
 if [ -n "${DKIM_DOMAIN}" ]; then
