@@ -144,7 +144,7 @@ When your catchall server forwards mail to Gmail, **SPF checks will fail** for t
 
 Your own SPF record (`v=spf1 ip4:YOUR.IP ~all`) authorizes your IP to send mail **from your domain**, not from other senders' domains. You cannot fix their SPF from your side.
 
-**Gmail's leniency:** For small single-user volumes, Gmail is generally tolerant of forwarded mail with SPF failures and uses other signals (message history, ARC headers) to avoid misclassifying legitimate forwarded mail as spam. This means many users will see forwarded mail arrive cleanly even without additional configuration.
+**Gmail's leniency:** For small single-user volumes, Gmail is generally tolerant of forwarded mail with SPF failures and uses other signals to avoid misclassifying legitimate forwarded mail as spam. This means many users will see forwarded mail arrive cleanly even without additional configuration.
 
 **Non-Gmail providers** (Outlook, Yahoo, corporate mail servers) are less forgiving and may reject or quarantine forwarded mail with SPF failures.
 
@@ -156,15 +156,7 @@ This adds a hop-level signature proving your server processed the message cleanl
 
 What does survive forwarding intact: the **original sender's DKIM signature** (you are not modifying the message body). If the original sender signed with DKIM, their signature remains valid. You cannot control whether external senders use DKIM.
 
-### Recommended Solution: ARC Signing
-
-**ARC (Authenticated Received Chain, RFC 8617)** is the correct solution for forwarders. ARC seals the authentication state at each forwarding hop. Gmail evaluates the ARC chain and can pass forwarded mail even when the envelope sender's SPF fails.
-
-OpenDKIM (version 2.11+) and the separate OpenARC daemon both support ARC signing. When implemented, your server adds ARC headers indicating what authentication checks passed at your hop, allowing Gmail to make a more informed trust decision.
-
-ARC implementation is planned as a future feature. For most small-volume hobbyist deployments, Gmail's leniency makes ARC non-essential initially.
-
-### Future: Sender Rewriting Scheme (SRS)
+### Recommended Solution: Sender Rewriting Scheme (SRS)
 
 For strict RFC compliance and interoperability with non-Gmail providers, **PostSRSD** can rewrite envelope senders so your IP is authorized for the rewritten address:
 
@@ -172,7 +164,7 @@ For strict RFC compliance and interoperability with non-Gmail providers, **PostS
 - Your SPF record for `catchall-domain` covers the rewritten address
 - Full SPF pass chain through the forwarding hop
 
-This is important for forwarding to providers that enforce strict SPF. It is planned as a future feature.
+This is the supported path for forwarding to providers that enforce strict SPF. It is planned as a future feature.
 
 ## References
 
