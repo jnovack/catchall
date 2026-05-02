@@ -51,7 +51,7 @@ test-global-sieve: nuke
 
 _sut-run-unit:
 	docker build -f test/unit/Dockerfile -t catchall-unit-test .
-	docker run --rm catchall-unit-test
+	docker run --rm -e TERM=xterm catchall-unit-test
 
 test-unit: _sut-run-unit
 
