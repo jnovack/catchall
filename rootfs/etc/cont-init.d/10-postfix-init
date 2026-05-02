@@ -46,6 +46,10 @@ for d in $ALIASES; do
     /bin/echo "@${d}        ${FORWARD_TARGET}" >> /etc/postfix/virtual
 done
 
+# Postfix is configured with alias_maps=hash:/etc/postfix/aliases. Keep an
+# empty alias database present even though local delivery now goes via LMTP.
+: > /etc/postfix/aliases
+
 # Log
 ENTRY_COUNT=$(grep -c '' /etc/postfix/virtual)
 echo "[NOTICE] virtual map: ${ENTRY_COUNT} entries"
@@ -82,3 +86,5 @@ if [ -f /etc/postfix/recipient_access ]; then
     /usr/sbin/postmap /etc/postfix/recipient_access
     ls -la /etc/postfix/recipient_access*
 fi
+/usr/sbin/postalias /etc/postfix/aliases
+ls -la /etc/postfix/aliases*

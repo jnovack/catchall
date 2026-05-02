@@ -33,5 +33,5 @@ teardown() {
     rm -rf /run/opendkim
 
     # Postfix artefacts
-    rm -f /etc/postfix/virtual /etc/postfix/virtual.db /etc/postfix/recipient_access /etc/postfix/recipient_access.db /etc/postfix/aliases /etc/postfix/main.cf
+    rm -f /etc/postfix/virtual /etc/postfix/virtual.db /etc/postfix/recipient_access /etc/postfix/recipient_access.db /etc/postfix/aliases /etc/postfix/aliases.db /etc/postfix/main.cf
 }
